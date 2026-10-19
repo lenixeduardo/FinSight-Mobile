@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:finsight_mobile/finsight_app.dart';
 
@@ -10,6 +12,26 @@ import 'package:finsight_mobile/finsight_app.dart';
 // Nao equivalem a screenshots de dispositivo Android/iOS.
 void main() {
   final boundaryKey = GlobalKey();
+
+  // Flutter Test usa Ahem por padrao (letras como blocos).
+  // Registra uma fonte real do SDK antes de gerar evidencias visuais.
+  setUpAll(() async {
+    final sdkRoot=Platform.environment['FLUTTER_ROOT'];
+    final possibleFonts=<String>[
+      if(sdkRoot!=null)
+        '${sdkRoot}/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf',
+      '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    ];
+    final candidates=possibleFonts.map(File.new);
+    final available=candidates.where((file)=>file.existsSync()).toList();
+    if(available.isEmpty) {
+      throw StateError('Fonte para capturas nao encontrada no runner.');
+    }
+    final bytes=await available.first.readAsBytes();
+    final loader=FontLoader('Roboto');
+    loader.addFont(Future.value(ByteData.sublistView(bytes)));
+    await loader.load();
+  });
 
   Future<void> mount(WidgetTester tester, {Size size = const Size(390,844)}) async {
     await tester.binding.setSurfaceSize(size);
