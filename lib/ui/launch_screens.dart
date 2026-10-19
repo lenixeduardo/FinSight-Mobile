@@ -273,7 +273,9 @@ class _OnboardingIllustration extends StatelessWidget {
           border:Border.all(color:fsBorder),
           boxShadow:const [BoxShadow(
             color:Color(0x0A0F172A),blurRadius:18,offset:Offset(0,7))]),
-        child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+        child:SingleChildScrollView(
+          physics:const NeverScrollableScrollPhysics(),
+          child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           Text(type==2?'Carteira':'Desempenho',
             style:const TextStyle(color:fsMuted,fontSize:10)),
           const SizedBox(height:5),
@@ -284,7 +286,7 @@ class _OnboardingIllustration extends StatelessWidget {
           Container(height:4,width:68,decoration:BoxDecoration(
             borderRadius:BorderRadius.circular(3),
             color:const Color(0xFFBCEEDC))),
-        ]),
+        ])),
       )),
     ),
   ]);
