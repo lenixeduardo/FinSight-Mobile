@@ -32,6 +32,15 @@ void main() {
     final loader=FontLoader('Roboto');
     loader.addFont(Future.value(ByteData.sublistView(bytes)));
     await loader.load();
+    if(sdkRoot!=null) {
+      final icons=File('${sdkRoot}/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
+      if(icons.existsSync()) {
+        final iconBytes=await icons.readAsBytes();
+        final iconLoader=FontLoader('MaterialIcons');
+        iconLoader.addFont(Future.value(ByteData.sublistView(iconBytes)));
+        await iconLoader.load();
+      }
+    }
   });
 
   Future<void> mount(WidgetTester tester, {Size size = const Size(390,844)}) async {
