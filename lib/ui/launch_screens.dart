@@ -190,7 +190,10 @@ class _OnboardingPage extends StatelessWidget {
       Expanded(flex:6,child:Center(child:ConstrainedBox(
         constraints:BoxConstraints(
           maxWidth:330,maxHeight:math.min(315.0,viewport.maxHeight*.67)),
-        child:_OnboardingIllustration(type:illustration)))),
+        child:FittedBox(
+          fit:BoxFit.contain,
+          child:SizedBox(width:330,height:310,
+            child:_OnboardingIllustration(type:illustration))))),
       Expanded(flex:4,child:Column(children:[
         const Spacer(),
         Text(heading,textAlign:TextAlign.center,
@@ -221,7 +224,7 @@ class _OnboardingIllustration extends StatelessWidget {
       Icons.auto_awesome,color:Color(0xFF9DE5D0),size:11)),
     Center(child:Transform.rotate(
       angle:-.07,child:Container(
-        width:204,height:260,
+        width:204,height:278,
         padding:const EdgeInsets.fromLTRB(16,18,16,14),
         decoration:BoxDecoration(
           color:Colors.white,
