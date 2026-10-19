@@ -9,6 +9,7 @@ import 'package:finsight_mobile/finsight_app.dart';
 import 'package:finsight_mobile/models/finance_models.dart';
 import 'package:finsight_mobile/ui/finsight_components.dart';
 import 'package:finsight_mobile/ui/brand_images.dart';
+import 'package:finsight_mobile/ui/launch_screens.dart';
 
 // Capturas geradas pelo renderizador Flutter em testes de widget.
 // Nao equivalem a screenshots de dispositivo Android/iOS.
@@ -52,7 +53,8 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
     await tester.pumpWidget(
-      RepaintBoundary(key:boundaryKey, child:const FinSightApp()));
+      RepaintBoundary(key:boundaryKey, child:const FinSightApp(
+        initialStage: FinSightEntryStage.login)));
     await tester.pumpAndSettle();
     if (enterDemo) {
       await tester.tap(find.byKey(const ValueKey('enter-demo')));
@@ -81,6 +83,47 @@ void main() {
       frame.dispose();
     });
   }
+
+  testWidgets('Splash em 390x844', (tester) async {
+    tester.view.devicePixelRatio=1;
+    tester.view.physicalSize=const Size(390,844);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await tester.pumpWidget(RepaintBoundary(key:boundaryKey,
+      child:MaterialApp(
+        debugShowCheckedModeBanner:false,
+        theme:finSightTheme(),
+        home:const FinSightSplashScreen(),
+      )));
+    await tester.pumpAndSettle();
+    expect(find.text('FinSight'),findsOneWidget);
+    await save(tester,'390_splash');
+  });
+
+  testWidgets('Onboarding etapas 1, 2 e 3 em 390x844', (tester) async {
+    tester.view.devicePixelRatio=1;
+    tester.view.physicalSize=const Size(390,844);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await tester.pumpWidget(RepaintBoundary(key:boundaryKey,
+      child:const FinSightApp(
+        initialStage:FinSightEntryStage.onboarding)));
+    await tester.pumpAndSettle();
+    expect(find.text('1/3'),findsOneWidget);
+    await save(tester,'390_onboarding_1');
+    await tester.tap(find.byKey(const ValueKey('onboarding-next')));
+    await tester.pumpAndSettle();
+    expect(find.text('2/3'),findsOneWidget);
+    await save(tester,'390_onboarding_2');
+    await tester.tap(find.byKey(const ValueKey('onboarding-next')));
+    await tester.pumpAndSettle();
+    expect(find.text('3/3'),findsOneWidget);
+    await save(tester,'390_onboarding_3');
+  });
 
   testWidgets('Login em 390x844', (tester) async {
     await mount(tester, enterDemo:false);

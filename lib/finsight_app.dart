@@ -1,32 +1,129 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'auth/auth_service.dart';
+import 'ui/launch_screens.dart';
 import 'models/finance_models.dart';
 import 'ui/finsight_components.dart';
 import 'ui/brand_images.dart';
 import 'ui/login_screen.dart';
 
+enum FinSightEntryStage { splash, onboarding, login, demo, authenticated }
+
 class FinSightApp extends StatefulWidget {
-  const FinSightApp({super.key});
+  const FinSightApp({
+    super.key,
+    this.initialStage = FinSightEntryStage.splash,
+    this.authService,
+  });
+  final FinSightEntryStage initialStage;
+  final FinSightAuthService? authService;
   @override
   State<FinSightApp> createState() => _FinSightAppState();
 }
 
 class _FinSightAppState extends State<FinSightApp> {
-  final store = FinSightStore();
-  bool isDemoSession = false;
+  static const introStorageKey = 'finsight_onboarding_seen_v1';
+  FinSightStore store = FinSightStore();
+  late FinSightEntryStage stage;
+  Timer? splashTimer;
 
   @override
-  void dispose() { store.dispose(); super.dispose(); }
+  void initState() {
+    super.initState();
+    stage = widget.initialStage;
+    if (stage == FinSightEntryStage.splash) {
+      splashTimer = Timer(
+        const Duration(milliseconds: 1450), _finishSplash);
+    }
+  }
+
+  void _clearSession() {
+    if (!mounted) return;
+    store.dispose();
+    store = FinSightStore();
+    setState(() => stage = FinSightEntryStage.login);
+  }
+
+  Future<void> _signOut() async {
+    if (stage != FinSightEntryStage.authenticated ||
+        widget.authService == null) {
+      _clearSession();
+      return;
+    }
+    try {
+      await widget.authService!.signOut();
+      _clearSession();
+    } catch (error) {
+      debugPrint('FinSight: erro no logout local: $error');
+    }
+  }
+
+  Future<void> _finishSplash() async {
+    bool seen = false;
+    bool restored = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      seen = prefs.getBool(introStorageKey) ?? false;
+    } catch (e) {
+      debugPrint('FinSight: onboarding não disponível: $e');
+    }
+    if (widget.authService != null) {
+      try {
+        restored = await widget.authService!.restoreSession();
+      } catch (e) {
+        debugPrint('FinSight: sessão SQLite indisponível: $e');
+      }
+    }
+    if (!mounted || stage != FinSightEntryStage.splash) return;
+    setState(() => stage = restored
+      ? FinSightEntryStage.authenticated
+      : seen ? FinSightEntryStage.login : FinSightEntryStage.onboarding);
+  }
+
+  Future<void> _completeOnboarding() async {
+    if (mounted) setState(() => stage = FinSightEntryStage.login);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(introStorageKey, true);
+    } catch (e) {
+      debugPrint('FinSight: falha ao salvar onboarding: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    splashTimer?.cancel();
+    store.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
     title: 'FinSight',
     theme: finSightTheme(),
-    home: isDemoSession
-      ? FinSightShell(store: store,
-          onSignOut: () => setState(() => isDemoSession = false))
-      : FinSightLoginScreen(
-          onEnterDemo: () => setState(() => isDemoSession = true)),
+    home: switch (stage) {
+      FinSightEntryStage.splash => const FinSightSplashScreen(),
+      FinSightEntryStage.onboarding => FinSightOnboardingFlow(
+        onFinished: _completeOnboarding),
+      FinSightEntryStage.login => FinSightLoginScreen(
+        key: const ValueKey('auth-login-screen'),
+        authService: widget.authService,
+        onAuthenticated: () {
+          if (mounted) {
+            setState(() => stage = FinSightEntryStage.authenticated);
+          }
+        },
+        onEnterDemo: () => setState(() => stage = FinSightEntryStage.demo)),
+      FinSightEntryStage.demo => FinSightShell(
+        store: store,
+        onSignOut: _signOut),
+      FinSightEntryStage.authenticated => FinSightShell(
+        store: store,
+        isAuthenticated: true,
+        onSignOut: _signOut),
+    },
   );
 }
 
@@ -36,9 +133,10 @@ void openAsset(BuildContext context, FinSightStore store, FSAsset asset) {
 }
 
 class FinSightShell extends StatefulWidget {
-  const FinSightShell({super.key, required this.store, required this.onSignOut});
+  const FinSightShell({super.key, required this.store, required this.onSignOut, this.isAuthenticated = false});
   final FinSightStore store;
   final VoidCallback onSignOut;
+  final bool isAuthenticated;
   @override
   State<FinSightShell> createState() => _FinSightShellState();
 }
@@ -54,7 +152,7 @@ class _FinSightShellState extends State<FinSightShell> {
         MarketsScreen(store: widget.store),
         SearchScreen(store: widget.store),
         PortfolioScreen(store: widget.store),
-        MoreScreen(store: widget.store, onSignOut: widget.onSignOut),
+        MoreScreen(store: widget.store, onSignOut: widget.onSignOut, isAuthenticated: widget.isAuthenticated),
       ]),
       bottomNavigationBar: NavigationBar(
         height: 72,
@@ -531,9 +629,10 @@ class PortfolioScreen extends StatelessWidget {
 }
 
 class MoreScreen extends StatelessWidget {
-  const MoreScreen({super.key, required this.store, required this.onSignOut});
+  const MoreScreen({super.key, required this.store, required this.onSignOut, this.isAuthenticated = false});
   final FinSightStore store;
   final VoidCallback onSignOut;
+  final bool isAuthenticated;
   @override
   Widget build(BuildContext context) => SafeArea(child: ListView(
     key: const ValueKey('more-screen'),
@@ -564,14 +663,14 @@ class MoreScreen extends StatelessWidget {
         key: const ValueKey('demo-sign-out'),
         onPressed: onSignOut,
         icon: const Icon(Icons.logout_rounded, size: 20),
-        label: const Text('Sair da demonstração'),
+        label: Text(isAuthenticated ? 'Sair da conta' : 'Sair da demonstração'),
         style: OutlinedButton.styleFrom(
           foregroundColor: fsInk,
           minimumSize: const Size.fromHeight(48),
           side: const BorderSide(color: fsBorder)),
       ),
       const SizedBox(height: 16),
-      const Text('FinSight · Visual V5.6 · modo demonstrativo',
+      Text(isAuthenticated ? 'FinSight · sessão autenticada' : 'FinSight · dados demonstrativos',
         style: TextStyle(color: fsMuted, fontSize: 12)),
     ],
   ));
