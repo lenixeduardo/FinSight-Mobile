@@ -232,7 +232,9 @@ class _OnboardingIllustration extends StatelessWidget {
           border:Border.all(color:fsBorder),
           boxShadow:const [BoxShadow(
             color:Color(0x100F172A),blurRadius:24,offset:Offset(0,11))]),
-        child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+        child:SingleChildScrollView(
+          physics:const NeverScrollableScrollPhysics(),
+          child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           Container(width:36,height:4,decoration:BoxDecoration(
             color:fsBorder,borderRadius:BorderRadius.circular(4))),
           const SizedBox(height:23),
@@ -259,7 +261,7 @@ class _OnboardingIllustration extends StatelessWidget {
                   color:fsGreen.withValues(alpha:.75),
                   borderRadius:BorderRadius.circular(3))))),
           ]),
-        ]),
+        ])),
       )),
     ),
     Positioned(left:3,bottom:17,child:Transform.rotate(
