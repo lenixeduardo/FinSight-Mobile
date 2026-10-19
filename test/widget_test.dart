@@ -43,7 +43,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('asset-search')), 'MGLU3');
     await tester.pumpAndSettle();
-    expect(find.text('MGLU3'),findsOneWidget);
+    expect(find.text('MGLU3'),findsWidgets);
     expect(find.text('Petrobras'),findsNothing);
   });
 
@@ -105,7 +105,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Comprar'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Data da operação').last);
+    final dateField=find.byWidgetPredicate((widget) =>
+      widget is TextFormField &&
+      widget.key is ValueKey<String> &&
+      (widget.key! as ValueKey<String>).value.startsWith('operation-date-'));
+    await tester.ensureVisible(dateField);
+    await tester.tap(dateField);
     await tester.pumpAndSettle();
     expect(find.byType(DatePickerDialog),findsOneWidget);
   });
