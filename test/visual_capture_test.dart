@@ -56,7 +56,7 @@ void main() {
     await tester.tap(find.text('Buscar').last);
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('asset-search')),'PETR4');
-    await tester.testTextInput.hide();
+    tester.testTextInput.hide();
     await tester.pumpAndSettle();
     await save(tester,'390_busca_petr4');
   });
