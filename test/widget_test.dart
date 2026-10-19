@@ -25,7 +25,8 @@ void main() {
     expect(find.byKey(const ValueKey('dashboard-screen')), findsOneWidget);
     await tester.tap(find.text('Mais').last);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const ValueKey('demo-sign-out')));
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('demo-sign-out')),
+      130, scrollable:find.byType(Scrollable).first);
     await tester.tap(find.byKey(const ValueKey('demo-sign-out')));
     await tester.pumpAndSettle();
     expect(find.text('Bem-vindo de volta'), findsOneWidget);
