@@ -1,32 +1,86 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'ui/launch_screens.dart';
 import 'models/finance_models.dart';
 import 'ui/finsight_components.dart';
 import 'ui/brand_images.dart';
 import 'ui/login_screen.dart';
 
+enum FinSightEntryStage { splash, onboarding, login, demo }
+
 class FinSightApp extends StatefulWidget {
-  const FinSightApp({super.key});
+  const FinSightApp({super.key,
+    this.initialStage = FinSightEntryStage.splash});
+  // Enables deterministic golden/widget tests without disabling
+  // the real splash sequence in production.
+  final FinSightEntryStage initialStage;
   @override
   State<FinSightApp> createState() => _FinSightAppState();
 }
 
 class _FinSightAppState extends State<FinSightApp> {
+  static const introStorageKey = 'finsight_onboarding_seen_v1';
   final store = FinSightStore();
-  bool isDemoSession = false;
+  late FinSightEntryStage stage;
+  Timer? splashTimer;
 
   @override
-  void dispose() { store.dispose(); super.dispose(); }
+  void initState() {
+    super.initState();
+    stage = widget.initialStage;
+    if (stage == FinSightEntryStage.splash) {
+      splashTimer = Timer(const Duration(milliseconds: 1450),
+        _finishSplash);
+    }
+  }
+
+  Future<void> _finishSplash() async {
+    bool seen = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      seen = prefs.getBool(introStorageKey) ?? false;
+    } catch (e) {
+      debugPrint('FinSight: preferencias do onboarding indisponiveis: $e');
+    }
+    if (mounted && stage == FinSightEntryStage.splash) {
+      setState(() => stage = seen
+        ? FinSightEntryStage.login : FinSightEntryStage.onboarding);
+    }
+  }
+
+  Future<void> _completeOnboarding() async {
+    setState(() => stage = FinSightEntryStage.login);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(introStorageKey, true);
+    } catch (e) {
+      debugPrint('FinSight: falha ao salvar introducao: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    splashTimer?.cancel();
+    store.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
     title: 'FinSight',
     theme: finSightTheme(),
-    home: isDemoSession
-      ? FinSightShell(store: store,
-          onSignOut: () => setState(() => isDemoSession = false))
-      : FinSightLoginScreen(
-          onEnterDemo: () => setState(() => isDemoSession = true)),
+    home: switch (stage) {
+      FinSightEntryStage.splash => const FinSightSplashScreen(),
+      FinSightEntryStage.onboarding => FinSightOnboardingFlow(
+        onFinished: _completeOnboarding),
+      FinSightEntryStage.login => FinSightLoginScreen(
+        onEnterDemo: () => setState(() => stage = FinSightEntryStage.demo)),
+      FinSightEntryStage.demo => FinSightShell(
+        store: store,
+        onSignOut: () => setState(() => stage = FinSightEntryStage.login)),
+    },
   );
 }
 
