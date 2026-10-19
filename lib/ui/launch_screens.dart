@@ -56,7 +56,7 @@ class FinSightSplashScreen extends StatelessWidget {
         duration:const Duration(milliseconds:700),
         curve:Curves.easeOutCubic,
         builder:(context,v,child)=>Opacity(
-          opacity:((v-.84)/.16).clamp(0,1),
+          opacity:((v-.84)/.16).clamp(0.0,1.0).toDouble(),
           child:Transform.scale(scale:v,child:child)),
         child:const Column(children:[
           FinSightBrandMark(size:92),
@@ -74,7 +74,7 @@ class FinSightSplashScreen extends StatelessWidget {
         style:TextStyle(fontSize:13,color:fsMuted,height:1.6)),
       const SizedBox(height:28),
       SizedBox(width:120,child:TweenAnimationBuilder<double>(
-        tween:Tween(begin:0,end:1),
+        tween:Tween<double>(begin:0,end:1),
         duration:const Duration(milliseconds:1300),
         builder:(context,v,_)=>LinearProgressIndicator(
           value:v,minHeight:3,
@@ -161,7 +161,7 @@ class _FinSightOnboardingFlowState extends State<FinSightOnboardingFlow> {
             onTap:advance,
             child:AnimatedScale(
               duration:const Duration(milliseconds:135),
-              scale:pressed?.94:1.0,
+              scale:pressed ? .94 : 1.0,
               child:Container(
                 key:const ValueKey('onboarding-next'),
                 width:56,height:56,
@@ -189,7 +189,7 @@ class _OnboardingPage extends StatelessWidget {
     builder:(context,viewport)=>Column(children:[
       Expanded(flex:6,child:Center(child:ConstrainedBox(
         constraints:BoxConstraints(
-          maxWidth:330,maxHeight:math.min(315,viewport.maxHeight*.67)),
+          maxWidth:330,maxHeight:math.min(315.0,viewport.maxHeight*.67)),
         child:_OnboardingIllustration(type:illustration)))),
       Expanded(flex:4,child:Column(children:[
         const Spacer(),
