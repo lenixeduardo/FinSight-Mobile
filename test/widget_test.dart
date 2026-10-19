@@ -67,4 +67,39 @@ void main() {
       find.byKey(const ValueKey('operation-submit')));
     expect(button.onPressed,isNull);
   });
+  test('Bloqueia venda sem posicao e preserva operacoes', () {
+    final store=FinSightStore();
+    final op=FSOperation(asset:fsAssets.first,quantity:1,
+      price:37.50,isBuy:false,date:DateTime(2024,6,10));
+    expect(()=>store.register(op),throwsStateError);
+    expect(store.operations,isEmpty);
+    expect(store.quantity('PETR4'),0);
+    store.dispose();
+  });
+
+  test('Bloqueia quantidade e preco invalidos', () {
+    final store=FinSightStore();
+    for(final pair in <(int,double)>[
+      (0,37.5),(-1,37.5),(1,0.0),(1,double.nan),(1,double.infinity),
+    ]) {
+      final op=FSOperation(asset:fsAssets.first,quantity:pair.$1,
+        price:pair.$2,isBuy:true,date:DateTime(2024,6,10));
+      expect(()=>store.register(op),throwsArgumentError);
+    }
+    expect(store.operations,isEmpty);
+    store.dispose();
+  });
+
+  testWidgets('Modal permite selecionar data da operacao', (tester) async {
+    await tester.pumpWidget(const FinSightApp());
+    await tester.ensureVisible(find.text('PETR4').first);
+    await tester.tap(find.text('PETR4').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Comprar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Data da operação').last);
+    await tester.pumpAndSettle();
+    expect(find.byType(DatePickerDialog),findsOneWidget);
+  });
+
 }
