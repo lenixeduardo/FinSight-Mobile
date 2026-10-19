@@ -66,83 +66,119 @@ class _FinSightShellState extends State<FinSightShell> {
   );
 }
 
-class DashboardScreen extends StatelessWidget {
+
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key, required this.store, required this.toMarket});
   final FinSightStore store;
   final VoidCallback toMarket;
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  String activeFilter = 'Maiores Altas';
+  List<FSAsset> get highlights {
+    if (activeFilter == 'Maiores Baixas') {
+      final ordered = [...fsAssets]..sort((a,b) => a.variation.compareTo(b.variation));
+      return ordered.take(4).toList();
+    }
+    if (activeFilter == 'Mais Negociadas') {
+      return [fsAssets[0], fsAssets[2], fsAssets[1], fsAssets[3]];
+    }
+    // Mesma ordem da prancha visual aprovada, com dados demonstrativos.
+    return fsAssets.take(4).toList();
+  }
+
+  @override
   Widget build(BuildContext context) => SafeArea(child: ListView(
     key: const ValueKey('dashboard-screen'),
-    padding: const EdgeInsets.all(24),
+    padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
     children: [
       Row(children: [
         const Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Olá, Investidor', style: TextStyle(
-              fontSize: 24, fontWeight: FontWeight.w700)),
-            SizedBox(height: 4),
+              fontSize: 20, fontWeight: FontWeight.w700)),
+            SizedBox(height: 3),
             Text('Vamos analisar o mercado hoje?',
-              style: TextStyle(color: fsMuted)),
+              style: TextStyle(fontSize: 12, color: fsMuted)),
           ],
         )),
         IconButton(tooltip: 'Notificações',
           onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Nenhuma notificação no modo demo.'))),
-          icon: const Icon(Icons.notifications_none)),
+          icon: const Icon(Icons.notifications_none_outlined)),
       ]),
-      const SizedBox(height: 26),
-      FSPanel(child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      const SizedBox(height: 22),
+      FSPanel(child: SizedBox(height: 100, child: Row(
         children: [
-          const Text('Ibovespa', style: TextStyle(color: fsMuted)),
-          const SizedBox(height: 8),
-          const Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 10,
-            runSpacing: 6,
+          const Expanded(flex: 6, child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('128.532,17', style: TextStyle(
-                fontSize: 28, fontWeight: FontWeight.w700)),
-              Text('+1,42%', style: TextStyle(
+              Text('Ibovespa', style: TextStyle(fontSize: 13, color: fsMuted)),
+              SizedBox(height: 7),
+              FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft,
+                child: Text('128.532,17', style: TextStyle(
+                  fontSize: 26, fontWeight: FontWeight.w700))),
+              SizedBox(height: 7),
+              Text('+1,42%', style: TextStyle(fontSize: 15,
                 color: fsGreen, fontWeight: FontWeight.w700)),
             ],
-          ),
-          const SizedBox(height: 12),
-          FSSparkline(
+          )),
+          const SizedBox(width: 8),
+          Expanded(flex: 5, child: FSSparkline(
             values: fsAssets[0].history,
-            height: 90),
-          const SizedBox(height: 8),
-          const Text('Dados demonstrativos · não são cotações ao vivo',
-            style: TextStyle(fontSize: 11, color: fsMuted)),
+            height: 76)),
         ],
-      )),
+      ))),
       const SizedBox(height: 12),
       const Row(children: [
-        Expanded(child: _IndexMini(name: 'Dólar', value: 'R\$ 5,23',
+        Expanded(child: _IndexMini(name: 'Dólar', value: 'R$ 5,23',
             change: '+0,16%')),
         SizedBox(width: 12),
         Expanded(child: _IndexMini(name: 'S&P 500', value: '4.982,31',
             change: '+0,62%')),
       ]),
-      const SizedBox(height: 28),
-      FSHeading('Destaques do dia', action: TextButton(
-        onPressed: toMarket, child: const Text('Ver todos'))),
-      for (final asset in fsAssets.take(4)) ...[
-        FSAssetRow(asset: asset, onTap: () => openAsset(
-          context, store, asset)),
-        const SizedBox(height: 8),
-      ],
+      const SizedBox(height: 25),
+      const FSHeading('Destaques do dia'),
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: [
+          for (final label in const [
+            'Maiores Altas', 'Maiores Baixas', 'Mais Negociadas'])
+            Padding(padding: const EdgeInsets.only(right: 7),
+              child: ChoiceChip(
+                key: ValueKey('highlight-$label'),
+                label: Text(label, style: const TextStyle(fontSize: 11)),
+                selected: activeFilter == label,
+                showCheckmark: false,
+                side: BorderSide(
+                  color: activeFilter == label ? fsGreen : fsBorder),
+                selectedColor: fsGreen.withValues(alpha: .09),
+                backgroundColor: Colors.white,
+                onSelected: (_) => setState(() => activeFilter = label),
+              )),
+        ]),
+      ),
+      const SizedBox(height: 8),
+      for (final asset in highlights)
+        FSAssetRow(asset: asset,
+          onTap: () => openAsset(context, widget.store, asset)),
       const SizedBox(height: 22),
       FSHeading('Seus favoritos', action: TextButton(
-        onPressed: toMarket, child: const Text('Explorar'))),
-      if (store.favorites.isEmpty)
-        const FSPanel(child: Text('Adicione seus ativos favoritos.'))
+        onPressed: widget.toMarket, child: const Text('Ver todos'))),
+      if (widget.store.favorites.isEmpty)
+        const FSPanel(child: Text('Seus próximos investimentos começam aqui. '
+          'Adicione ativos aos favoritos.'))
       else
-        for (final asset in store.favorites.take(3)) ...[
-          FSAssetRow(asset: asset, onTap: () => openAsset(context, store, asset)),
-          const SizedBox(height: 8),
-        ],
+        for (final asset in widget.store.favorites.take(3))
+          FSAssetRow(asset: asset,
+            onTap: () => openAsset(context, widget.store, asset)),
+      const SizedBox(height: 14),
+      const Center(child: Text('Dados demonstrativos · sem cotação ao vivo',
+        style: TextStyle(fontSize: 11, color: fsMuted))),
     ],
   ));
 }
@@ -151,15 +187,22 @@ class _IndexMini extends StatelessWidget {
   const _IndexMini({required this.name, required this.value, required this.change});
   final String name, value, change;
   @override
-  Widget build(BuildContext context) => FSPanel(child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(name, style: const TextStyle(color: fsMuted, fontSize: 12)),
-      const SizedBox(height: 6),
-      Text(value, style: const TextStyle(
-        fontWeight: FontWeight.w700, fontSize: 18)),
-      Text(change, style: const TextStyle(
-        color: fsGreen, fontWeight: FontWeight.w600, fontSize: 12)),
-    ],
+  Widget build(BuildContext context) => FSPanel(child: SizedBox(
+    height: 80,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(name, style: const TextStyle(color: fsMuted, fontSize: 12)),
+        const SizedBox(height: 6),
+        FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft,
+          child: Text(value, style: const TextStyle(
+            fontWeight: FontWeight.w700, fontSize: 18))),
+        const SizedBox(height: 4),
+        Text(change, style: const TextStyle(
+          color: fsGreen, fontWeight: FontWeight.w600, fontSize: 12)),
+      ],
+    ),
   ));
 }
 
