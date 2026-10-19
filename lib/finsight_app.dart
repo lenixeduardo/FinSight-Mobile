@@ -97,13 +97,17 @@ class DashboardScreen extends StatelessWidget {
         children: [
           const Text('Ibovespa', style: TextStyle(color: fsMuted)),
           const SizedBox(height: 8),
-          const Row(children: [
-            Text('128.532,17', style: TextStyle(
-              fontSize: 28, fontWeight: FontWeight.w700)),
-            SizedBox(width: 10),
-            Text('+1,42%', style: TextStyle(
-              color: fsGreen, fontWeight: FontWeight.w700)),
-          ]),
+          const Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 10,
+            runSpacing: 6,
+            children: [
+              Text('128.532,17', style: TextStyle(
+                fontSize: 28, fontWeight: FontWeight.w700)),
+              Text('+1,42%', style: TextStyle(
+                color: fsGreen, fontWeight: FontWeight.w700)),
+            ],
+          ),
           const SizedBox(height: 12),
           FSSparkline(
             values: fsAssets[0].history,
