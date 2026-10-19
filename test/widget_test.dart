@@ -1,11 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:finsight_mobile/finsight_app.dart';
 import 'package:finsight_mobile/models/finance_models.dart';
 
 void main() {
-  testWidgets('Login exibido na inicializacao com acesso demo', (tester) async {
+  testWidgets('Splash inicia antes do onboarding na primeira visita',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const FinSightApp());
+    expect(find.text('Financial Intelligence'), findsOneWidget);
+    expect(find.text('Acompanhe o mercado\nem tempo real'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 1500));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('onboarding-pages')), findsOneWidget);
+    expect(find.text('1/3'), findsOneWidget);
+  });
+
+  testWidgets('Progresso animado e conclusao do onboarding', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(const FinSightApp(
+      initialStage: FinSightEntryStage.onboarding));
+    expect(find.text('1/3'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('onboarding-next')));
+    await tester.pumpAndSettle();
+    expect(find.text('2/3'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('onboarding-next')));
+    await tester.pumpAndSettle();
+    expect(find.text('3/3'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('onboarding-next')));
+    await tester.pumpAndSettle();
+    expect(find.text('Bem-vindo de volta'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('finsight_onboarding_seen_v1'), true);
+  });
+
+  testWidgets('Visita posterior pula onboarding automaticamente',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'finsight_onboarding_seen_v1': true,
+    });
+    await tester.pumpWidget(const FinSightApp());
+    expect(find.text('Financial Intelligence'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 1500));
+    await tester.pumpAndSettle();
+    expect(find.text('Bem-vindo de volta'), findsOneWidget);
+    expect(find.byKey(const ValueKey('onboarding-pages')), findsNothing);
+  });
+
+  testWidgets('Pular onboarding vai ao login', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(const FinSightApp(
+      initialStage: FinSightEntryStage.onboarding));
+    await tester.tap(find.byKey(const ValueKey('onboarding-skip')));
+    await tester.pumpAndSettle();
+    expect(find.text('Bem-vindo de volta'), findsOneWidget);
+  });
+
+
+  testWidgets('Login exibido na inicializacao com acesso demo', (tester) async {
+    await tester.pumpWidget(const FinSightApp(
+      initialStage: FinSightEntryStage.login));
     expect(find.text('Bem-vindo de volta'), findsOneWidget);
     expect(find.byKey(const ValueKey('login-email')), findsOneWidget);
     expect(find.byKey(const ValueKey('login-password')), findsOneWidget);
@@ -18,7 +73,8 @@ void main() {
   });
 
   testWidgets('Demo permite sair e voltar ao login', (tester) async {
-    await tester.pumpWidget(const FinSightApp());
+    await tester.pumpWidget(const FinSightApp(
+      initialStage: FinSightEntryStage.login));
     await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
     await tester.tap(find.byKey(const ValueKey('enter-demo')));
     await tester.pumpAndSettle();
@@ -34,7 +90,8 @@ void main() {
   });
 
   testWidgets('CDI possui icone sem placeholder de porcentagem', (tester) async {
-    await tester.pumpWidget(const FinSightApp());
+    await tester.pumpWidget(const FinSightApp(
+      initialStage: FinSightEntryStage.login));
     await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
     await tester.tap(find.byKey(const ValueKey('enter-demo')));
     await tester.pumpAndSettle();
@@ -65,7 +122,8 @@ void main() {
   });
 
   testWidgets('Dashboard exibe indicadores e os quatro destaques', (tester) async {
-    await tester.pumpWidget(const FinSightApp());
+    await tester.pumpWidget(const FinSightApp(
+      initialStage: FinSightEntryStage.login));
     await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
     await tester.tap(find.byKey(const ValueKey('enter-demo')));
     await tester.pumpAndSettle();
@@ -79,7 +137,8 @@ void main() {
   });
 
   testWidgets('Navegacao abre mercado e carteira', (tester) async {
-    await tester.pumpWidget(const FinSightApp());
+    await tester.pumpWidget(const FinSightApp(
+      initialStage: FinSightEntryStage.login));
     await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
     await tester.tap(find.byKey(const ValueKey('enter-demo')));
     await tester.pumpAndSettle();
@@ -92,7 +151,8 @@ void main() {
   });
 
   testWidgets('Busca filtra ativos por ticker', (tester) async {
-    await tester.pumpWidget(const FinSightApp());
+    await tester.pumpWidget(const FinSightApp(
+      initialStage: FinSightEntryStage.login));
     await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
     await tester.tap(find.byKey(const ValueKey('enter-demo')));
     await tester.pumpAndSettle();
@@ -105,7 +165,8 @@ void main() {
   });
 
   testWidgets('Detalhe permite abrir operacao', (tester) async {
-    await tester.pumpWidget(const FinSightApp());
+    await tester.pumpWidget(const FinSightApp(
+      initialStage: FinSightEntryStage.login));
     await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
     await tester.tap(find.byKey(const ValueKey('enter-demo')));
     await tester.pumpAndSettle();
@@ -121,7 +182,8 @@ void main() {
   });
 
   testWidgets('O CTA venda segue vermelho e saldo e validado', (tester) async {
-    await tester.pumpWidget(const FinSightApp());
+    await tester.pumpWidget(const FinSightApp(
+      initialStage: FinSightEntryStage.login));
     await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
     await tester.tap(find.byKey(const ValueKey('enter-demo')));
     await tester.pumpAndSettle();
@@ -160,7 +222,8 @@ void main() {
   });
 
   testWidgets('Modal permite selecionar data da operacao', (tester) async {
-    await tester.pumpWidget(const FinSightApp());
+    await tester.pumpWidget(const FinSightApp(
+      initialStage: FinSightEntryStage.login));
     await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
     await tester.tap(find.byKey(const ValueKey('enter-demo')));
     await tester.pumpAndSettle();
@@ -181,7 +244,8 @@ void main() {
   });
 
   testWidgets('Filtro de destaques altera lista', (tester) async {
-    await tester.pumpWidget(const FinSightApp());
+    await tester.pumpWidget(const FinSightApp(
+      initialStage: FinSightEntryStage.login));
     await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
     await tester.tap(find.byKey(const ValueKey('enter-demo')));
     await tester.pumpAndSettle();
@@ -192,7 +256,8 @@ void main() {
   });
 
   testWidgets('Modal V5 utiliza cabecalho e labels reais', (tester) async {
-    await tester.pumpWidget(const FinSightApp());
+    await tester.pumpWidget(const FinSightApp(
+      initialStage: FinSightEntryStage.login));
     await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
     await tester.tap(find.byKey(const ValueKey('enter-demo')));
     await tester.pumpAndSettle();
