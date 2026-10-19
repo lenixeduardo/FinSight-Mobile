@@ -69,7 +69,13 @@ jobs:
         run: flutter pub get
 
       - name: Build web
-        run: flutter build web --release
+        env:
+          SUPABASE_URL: ${{ secrets.FINSIGHT_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.FINSIGHT_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          flutter build web --release \
+            --dart-define="SUPABASE_URL=$SUPABASE_URL" \
+            --dart-define="SUPABASE_PUBLISHABLE_KEY=$SUPABASE_PUBLISHABLE_KEY"
 
       - name: Artefato de build
         if: always()
@@ -128,7 +134,13 @@ jobs:
       - name: Instalar dependencias
         run: flutter pub get
       - name: Compilar APK demonstrativo
-        run: flutter build apk --debug
+        env:
+          SUPABASE_URL: ${{ secrets.FINSIGHT_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.FINSIGHT_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          flutter build apk --debug \
+            --dart-define="SUPABASE_URL=$SUPABASE_URL" \
+            --dart-define="SUPABASE_PUBLISHABLE_KEY=$SUPABASE_PUBLISHABLE_KEY"
       - name: Publicar APK de teste
         if: always()
         uses: actions/upload-artifact@v4
