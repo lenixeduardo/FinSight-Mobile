@@ -44,7 +44,7 @@ void main() {
     }
   });
 
-  Future<void> mount(WidgetTester tester, {Size size = const Size(390,844)}) async {
+  Future<void> mount(WidgetTester tester, {Size size = const Size(390,844), bool enterDemo = true}) async {
     tester.view.devicePixelRatio=1;
     tester.view.physicalSize=size;
     addTearDown(() {
@@ -54,9 +54,13 @@ void main() {
     await tester.pumpWidget(
       RepaintBoundary(key:boundaryKey, child:const FinSightApp()));
     await tester.pumpAndSettle();
-    await tester.runAsync(() => FSBrandImage.precacheAll(
-      tester.element(find.byType(FinSightApp))));
-    await tester.pumpAndSettle();
+    if (enterDemo) {
+      await tester.tap(find.byKey(const ValueKey('enter-demo')));
+      await tester.pumpAndSettle();
+      await tester.runAsync(() => FSBrandImage.precacheAll(
+        tester.element(find.byType(FinSightApp))));
+      await tester.pumpAndSettle();
+    }
   }
 
   Future<void> save(WidgetTester tester, String name) async {
@@ -77,6 +81,20 @@ void main() {
       frame.dispose();
     });
   }
+
+  testWidgets('Login em 390x844', (tester) async {
+    await mount(tester, enterDemo:false);
+    expect(find.text('Bem-vindo de volta'),findsOneWidget);
+    await save(tester,'390_login');
+  });
+
+  testWidgets('CDI em mercado com icone vetorial', (tester) async {
+    await mount(tester);
+    await tester.tap(find.text('Mercado').last);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('market-icon-cdi')),findsOneWidget);
+    await save(tester,'390_mercado_cdi');
+  });
 
   testWidgets('Dashboard em 390x844', (tester) async {
     await mount(tester);
