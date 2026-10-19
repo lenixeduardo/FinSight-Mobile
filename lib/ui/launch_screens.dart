@@ -193,7 +193,7 @@ class _OnboardingPage extends StatelessWidget {
         child:FittedBox(
           fit:BoxFit.contain,
           child:SizedBox(width:330,height:310,
-            child:_OnboardingIllustration(type:illustration))))),
+            child:_OnboardingIllustration(type:illustration)))))),
       Expanded(flex:4,child:Column(children:[
         const Spacer(),
         Text(heading,textAlign:TextAlign.center,
