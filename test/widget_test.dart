@@ -21,6 +21,8 @@ void main() {
     await tester.pumpWidget(const FinSightApp());
     expect(find.text('Olá, Investidor'), findsOneWidget);
     expect(find.text('Ibovespa'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('PETR4'), 140,
+      scrollable:find.byType(Scrollable).first);
     expect(find.text('PETR4'), findsWidgets);
     expect(find.text('VALE3'), findsWidgets);
   });
@@ -47,6 +49,8 @@ void main() {
 
   testWidgets('Detalhe permite abrir operacao', (tester) async {
     await tester.pumpWidget(const FinSightApp());
+    await tester.scrollUntilVisible(find.text('PETR4'), 140,
+      scrollable:find.byType(Scrollable).first);
     await tester.tap(find.text('PETR4').first);
     await tester.pumpAndSettle();
     expect(find.text('Comprar'),findsOneWidget);
@@ -58,6 +62,8 @@ void main() {
 
   testWidgets('O CTA venda segue vermelho e saldo e validado', (tester) async {
     await tester.pumpWidget(const FinSightApp());
+    await tester.scrollUntilVisible(find.text('PETR4'), 140,
+      scrollable:find.byType(Scrollable).first);
     await tester.tap(find.text('PETR4').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Vender'));
@@ -93,6 +99,8 @@ void main() {
   testWidgets('Modal permite selecionar data da operacao', (tester) async {
     await tester.pumpWidget(const FinSightApp());
     await tester.ensureVisible(find.text('PETR4').first);
+    await tester.scrollUntilVisible(find.text('PETR4'), 140,
+      scrollable:find.byType(Scrollable).first);
     await tester.tap(find.text('PETR4').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Comprar'));
