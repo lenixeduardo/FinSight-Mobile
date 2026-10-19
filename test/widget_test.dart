@@ -72,7 +72,7 @@ void main() {
     expect(find.byKey(const ValueKey('dashboard-screen')), findsNothing);
   });
 
-  testWidgets('Cadastro e recuperação aparecem sem backend, sem fingir sessão',
+  testWidgets('Cadastro local aparece sem backend e não simula sessão',
       (tester) async {
     await tester.pumpWidget(const FinSightApp(
       initialStage: FinSightEntryStage.login));
@@ -81,16 +81,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Crie sua conta'), findsOneWidget);
     expect(find.byKey(const ValueKey('login-email')), findsOneWidget);
-    final createButton=tester.widget<FilledButton>(
+    final createButton = tester.widget<FilledButton>(
       find.byKey(const ValueKey('login-submit')));
-    expect(createButton.onPressed, isNull);
-    await tester.tap(find.byKey(const ValueKey('auth-switch-mode')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('login-forgot-password')));
-    await tester.pumpAndSettle();
-    expect(find.text('Recuperar senha'), findsOneWidget);
-    expect(find.byKey(const ValueKey('login-password')), findsNothing);
-    expect(find.byKey(const ValueKey('login-submit')), findsOneWidget);
+    expect(createButton.onPressed, isNull,
+      reason: 'Na prévia Web/teste sem SQLite não há login simulado');
+    expect(find.textContaining('sem sincronização ou recuperação'),
+      findsOneWidget);
   });
 
   testWidgets('Demo permite sair e voltar ao login', (tester) async {
