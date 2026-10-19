@@ -45,8 +45,12 @@ void main() {
   });
 
   Future<void> mount(WidgetTester tester, {Size size = const Size(390,844)}) async {
-    await tester.binding.setSurfaceSize(size);
-    addTearDown(() async { await tester.binding.setSurfaceSize(null); });
+    tester.view.devicePixelRatio=1;
+    tester.view.physicalSize=size;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
     await tester.pumpWidget(
       RepaintBoundary(key:boundaryKey, child:const FinSightApp()));
     await tester.pumpAndSettle();
@@ -133,8 +137,12 @@ void main() {
   });
 
   testWidgets('Modal responsivo em 320x640', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(320,640));
-    addTearDown(() async { await tester.binding.setSurfaceSize(null); });
+    tester.view.devicePixelRatio=1;
+    tester.view.physicalSize=const Size(320,640);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
     final store=FinSightStore();
     addTearDown(store.dispose);
     await tester.pumpWidget(RepaintBoundary(
@@ -153,8 +161,12 @@ void main() {
     await save(tester,'320_modal_compra');
   });
   testWidgets('Modal venda com saldo em 390x844', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(390,844));
-    addTearDown(() async { await tester.binding.setSurfaceSize(null); });
+    tester.view.devicePixelRatio=1;
+    tester.view.physicalSize=const Size(390,844);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
     final store=FinSightStore();
     addTearDown(store.dispose);
     store.register(FSOperation(
