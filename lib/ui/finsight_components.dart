@@ -55,14 +55,17 @@ class FSPanel extends StatelessWidget {
   final Widget child;
   final double padding;
   @override
-  Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.all(padding),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: fsBorder),
-      borderRadius: BorderRadius.circular(12),
+  Widget build(BuildContext context) => Material(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(12),
+    child: Container(
+      padding: EdgeInsets.all(padding),
+      decoration: BoxDecoration(
+        border: Border.all(color: fsBorder),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: child,
     ),
-    child: child,
   );
 }
 
@@ -177,7 +180,8 @@ class FSAssetRow extends StatelessWidget {
               style: const TextStyle(fontSize: 12, color: fsMuted)),
           ],
         )),
-        if (!compact) SizedBox(width: 65, child: FSSparkline(
+        if (!compact && MediaQuery.sizeOf(context).width >= 380)
+          SizedBox(width: 65, child: FSSparkline(
           values: asset.history, positive: asset.variation >= 0,
           height: 30)),
         const SizedBox(width: 12),

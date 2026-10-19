@@ -48,7 +48,7 @@ jobs:
         run: |
           echo '## FinSight — verificacao de infraestrutura' >> "$GITHUB_STEP_SUMMARY"
           echo 'SDK Flutter/Dart, analise estatica e testes do app inicial.' >> "$GITHUB_STEP_SUMMARY"
-          echo 'Esta execução **não homologa o UI Kit V5.2 completo**.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Esta execução valida o aplicativo navegável; a nota visual exige comparação das capturas com a prancha V5.' >> "$GITHUB_STEP_SUMMARY"
 
   build-web:
     name: Build de preview Flutter Web
@@ -75,7 +75,65 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: finsight-flutter-web-bootstrap
+          name: finsight-flutter-web-preview
           path: build/web/
+          if-no-files-found: warn
+          retention-days: 14
+
+  visual-captures:
+    name: Capturas Flutter V5.3 (render widget)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Dependencias
+        run: flutter pub get
+      - name: Capturar 390 e 320 dp
+        run: flutter test test/visual_capture_test.dart --reporter expanded
+      - name: Publicar imagens reais do Flutter
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finsight-flutter-v53-captures
+          path: captures/flutter_v53/*.png
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Publicar instrucoes para auditoria
+        if: always()
+        run: |
+          echo '## Capturas Flutter V5.3' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Imagens de widget renderizadas em Linux: nao equivalem a capturas iOS/Android.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Compare proporcoes, logos, tipografia e cores com o mockup V5 usando a mesma viewport.' >> "$GITHUB_STEP_SUMMARY"
+
+  build-android:
+    name: Build Android APK debug
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Gerar pasta nativa Android
+        run: flutter create --platforms=android --project-name finsight_mobile .
+      - name: Instalar dependencias
+        run: flutter pub get
+      - name: Compilar APK demonstrativo
+        run: flutter build apk --debug
+      - name: Publicar APK de teste
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finsight-android-debug
+          path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: warn
           retention-days: 14
