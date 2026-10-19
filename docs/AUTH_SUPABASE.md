@@ -1,50 +1,39 @@
-# FinSight — Autenticação Supabase
+# FinSight — autenticação local com SQLite (V5.9)
 
-## Arquitetura
+O FinSight não utiliza Supabase Auth nesta versão.
 
-- Autenticação real com `supabase_flutter`: e-mail/senha, cadastro, confirmação por e-mail, recuperação e redefinição de senha.
-- Supabase Auth persiste a sessão no dispositivo. O app restaura a sessão após o Splash.
-- `onAuthStateChange` responde a entrada, saída, atualização de token e recuperação de senha.
-- A demonstração não cria usuário nem autentica no Supabase. Dados financeiros do app ainda são demonstrativos e locais, inclusive após entrar com conta.
-- `service_role` / `sb_secret_` **nunca** devem ser incluídos no cliente Flutter.
-- Se nenhuma configuração Supabase estiver presente, o app permanece em modo de demonstração e o botão de login fica desabilitado.
+## Tecnologias
+- `sqflite`: tabela `local_users` persistida no dispositivo Android/iOS.
+- `cryptography`: PBKDF2-HMAC-SHA256, 180.000 iterações, sal aleatório individual de 16 bytes. Nenhuma senha em texto puro é gravada no SQLite.
+- `flutter_secure_storage`: guarda apenas o identificador da sessão no armazenamento seguro da plataforma.
+- `shared_preferences`: armazena exclusivamente a conclusão do onboarding.
 
-## Vincular o projeto
+## Funcionalidades
+- Cadastro de conta local por e-mail e senha (mínimo 10 caracteres).
+- Login por e-mail/senha no mesmo dispositivo.
+- Restauração de sessão durante a Splash Screen.
+- Logout com limpeza da sessão e do estado em memória.
+- Demonstração independente de conta local.
+- Tratamento de conta já existente, credenciais erradas e indisponibilidade do banco.
 
-1. Criar um projeto Supabase dedicado ao FinSight (não utilizar as bases de outros aplicativos).
-2. Em Supabase Dashboard → Authentication → Providers → Email, conferir que o provedor de e-mail está habilitado. Manter confirmação de e-mail ativada.
-3. Em Authentication → URL Configuration, adicionar o callback nativo `io.finsight.mobile://login-callback/` à lista de URLs permitidas. Configurar também o Site URL do app web hospedado e seus redirects específicos.
-4. Copiar **Project URL** e **Publishable key** (não a secret key).
-5. Em GitHub → FinSight-Mobile → Settings → Secrets and variables → Actions, adicionar:
-   - `FINSIGHT_SUPABASE_URL`
-   - `FINSIGHT_SUPABASE_PUBLISHABLE_KEY`
-6. Disparar novamente o workflow. A compilação Android e Web recebe os dois parâmetros via `--dart-define`.
+## Limites de produto e segurança
+- **Sem sincronização:** a conta SQLite pertence ao aparelho onde foi criada.
+- **Sem verificação nem recuperação por e-mail:** o SQLite local não disponibiliza servidor de e-mails. O app informa isso expressamente. Perda de senha pode tornar o acesso à conta local irrecuperável.
+- O hash e o armazenamento seguro dificultam extração casual, mas autenticação somente local não oferece garantias equivalentes à validação remota e não deve proteger saldos bancários reais.
+- Carteira, operações e cotações ainda são dados demonstrativos, mantidos em memória; autenticação local **não** sincroniza nem persiste a carteira automaticamente.
+- A versão Flutter Web permanece em modo de demonstração, pois `sqflite` não é configurado para armazenamento SQLite no navegador.
+- Os testes de widget no GitHub Actions verificam fluxo visual e compilação; testes reais do banco, sessão e segurança precisam de Android/iOS em dispositivo/emulador.
 
-Rodar localmente:
-
+## Rodar
 ```bash
-flutter run \
-  --dart-define=SUPABASE_URL=https://PROJECT_REF.supabase.co \
-  --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_VALUE
+flutter pub get
+flutter analyze
+flutter test
+flutter run
 ```
 
-## Android e iOS
+## Fluxo
+Splash animada → onboarding (somente primeiro acesso) → login/cadastro local → dashboard. No retorno, a sessão é restaurada quando possível.
 
-O Manifest Android inclui permissão de internet e intent-filter para `io.finsight.mobile://login-callback/`. Após o `flutter create --platforms=android`, conferir se o build preservou o Manifest.
-
-Para iOS, configurar o mesmo URL Scheme no `ios/Runner/Info.plist` após criar o projeto iOS e testar os links no dispositivo.
-
-Para fluxo web de recuperação, configurar URL HTTPS autorizada e hospedar o app em domínio válido.
-
-## Checklist de homologação real (manual)
-
-- Criar usuário com e-mail que você controla.
-- Conferir recebimento e funcionamento da confirmação por e-mail.
-- Fazer login com senha certa e testar senha errada.
-- Fechar/reabrir app e conferir restauração de sessão.
-- Solicitar recuperação e validar abertura da tela de nova senha pelo deep link.
-- Trocar senha, verificar saída da sessão e entrar com a nova senha.
-- Testar logout e ausência de operações de outra sessão.
-- Testar falha de conexão e rate limit.
-
-**CI sem credenciais** valida compilação e testes de widgets com autenticação desabilitada, não comprova um fluxo E2E conectado ao serviço remoto.
+## Splash Screen
+Implementada em `lib/ui/launch_screens.dart` como desenho vetorial via `CustomPainter`, sem blur ou sombreamento pesado, com identidade FinSight, animação de escala/opacidade e barra de progresso. Captura visual: `390_splash.png`, gerada pelo GitHub Actions.
