@@ -83,6 +83,14 @@ class FinSightStore extends ChangeNotifier {
   }
 
   void register(FSOperation operation) {
+    if (operation.quantity <= 0 || !operation.price.isFinite ||
+        operation.price <= 0) {
+      throw ArgumentError('Quantidade e preço devem ser positivos.');
+    }
+    if (!operation.isBuy &&
+        operation.quantity > quantity(operation.asset.ticker)) {
+      throw StateError('Quantidade de venda superior à posição disponível.');
+    }
     _operations.insert(0, operation);
     notifyListeners();
   }
