@@ -219,55 +219,124 @@ class MarketsScreen extends StatefulWidget {
   State<MarketsScreen> createState() => _MarketsScreenState();
 }
 
+
 class _MarketsScreenState extends State<MarketsScreen> {
-  String category='Todos';
+  String activeTab = 'Índices';
+  String assetFilter = 'Ações';
+
+  static const indices = <(String, String, String, String)>[
+    ('🇧🇷', 'Ibovespa', '128.532,17', '+1,42%'),
+    ('🇧🇷', 'IFIX', '3.214,08', '+0,31%'),
+    ('🇺🇸', 'S&P 500', '4.982,31', '+0,62%'),
+    ('🇺🇸', 'NASDAQ', '15.628,24', '+0,38%'),
+    ('🇧🇷', 'Dólar', 'R\$ 5,23', '+0,16%'),
+    ('🇪🇺', 'Euro', 'R\$ 5,71', '+0,12%'),
+    ('%', 'CDI', '10,65%', '0,00%'),
+  ];
+  static const cambio = <(String, String, String, String)>[
+    ('🇺🇸', 'Dólar', 'R\$ 5,23', '+0,16%'),
+    ('🇪🇺', 'Euro', 'R\$ 5,71', '+0,12%'),
+  ];
+  static const commodities = <(String, String, String, String)>[
+    ('AU', 'Ouro', 'US\$ 2.371,00', '+0,36%'),
+    ('BR', 'Petróleo Brent', 'US\$ 80,40', '+0,81%'),
+  ];
+  static const setores = <(String, String, String, String)>[
+    ('FIN', 'Financeiro', '5.742,10', '+0,82%'),
+    ('ENE', 'Energia', '4.038,40', '+0,55%'),
+  ];
+  List<(String,String,String,String)> get marketRows =>
+      switch (activeTab) {
+        'Câmbio' => cambio,
+        'Commodities' => commodities,
+        'Setores' => setores,
+        _ => indices,
+      };
+  List<FSAsset> get mostTraded =>
+      assetFilter == 'Ações'
+        ? fsAssets.where((a) => a.category == 'Ações').take(4).toList()
+        : fsAssets.where((a) => a.category == assetFilter).toList();
+
   @override
-  Widget build(BuildContext context) {
-    final list = category=='Todos' ? fsAssets
-      : fsAssets.where((a)=>a.category==category).toList();
-    return SafeArea(child: ListView(
-      key: const ValueKey('markets-screen'),
-      padding: const EdgeInsets.all(24),
-      children: [
-        const Text('Mercado', style: TextStyle(
-          fontSize: 24, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 4),
-        const Text('Acompanhe ativos e indicadores',
-          style: TextStyle(color: fsMuted)),
-        const SizedBox(height: 24),
-        const FSHeading('Principais índices'),
-        const _IndexMini(name: 'Ibovespa', value: '128.532,17', change: '+1,42%'),
-        const SizedBox(height: 12),
-        const Row(children: [
-          Expanded(child: _IndexMini(name: 'Dólar', value: 'R\$ 5,23',
-            change: '+0,16%')),
-          SizedBox(width: 12),
-          Expanded(child: _IndexMini(name: 'S&P 500', value: '4.982,31',
-            change: '+0,62%')),
+  Widget build(BuildContext context) => SafeArea(child: ListView(
+    key: const ValueKey('markets-screen'),
+    padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+    children: [
+      const Text('Mercado', style: TextStyle(
+        fontSize: 23, fontWeight: FontWeight.w700)),
+      const SizedBox(height: 17),
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: [
+          for (final category in const ['Índices','Câmbio','Commodities','Setores'])
+            TextButton(
+              key: ValueKey('market-$category'),
+              onPressed: () => setState(() => activeTab = category),
+              style: TextButton.styleFrom(
+                foregroundColor: activeTab == category ? fsGreen : fsMuted),
+              child: Text(category, style: TextStyle(
+                fontSize: 12,
+                fontWeight: activeTab == category
+                  ? FontWeight.w700 : FontWeight.w500)),
+            ),
         ]),
-        const SizedBox(height: 26),
-        const FSHeading('Ativos'),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(children: [
-            for (final filter in ['Todos','Ações','ETF','Fundos','Cripto'])
-              Padding(padding: const EdgeInsets.only(right: 8),
-                child: ChoiceChip(
-                  label: Text(filter),
-                  selected: category==filter,
-                  onSelected: (_) => setState(()=>category=filter),
-                )),
-          ]),
-        ),
-        const SizedBox(height: 16),
-        for (final asset in list) ...[
-          FSAssetRow(asset: asset,
-            onTap: () => openAsset(context, widget.store, asset)),
-          const SizedBox(height: 8),
-        ],
-      ],
-    ));
-  }
+      ),
+      const Divider(height: 1, color: fsBorder),
+      const SizedBox(height: 8),
+      for (final index in marketRows)
+        _MarketIndexRow(index: index),
+      const SizedBox(height: 22),
+      const FSHeading('Mais negociadas'),
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: [
+          for (final filter in const ['Ações','Fundos','ETF','Cripto'])
+            Padding(padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(filter, style: const TextStyle(fontSize: 11)),
+                selected: assetFilter == filter,
+                showCheckmark: false,
+                selectedColor: fsGreen.withValues(alpha: .10),
+                backgroundColor: Colors.white,
+                side: BorderSide(color: assetFilter == filter
+                  ? fsGreen : fsBorder),
+                onSelected: (_) => setState(() => assetFilter = filter),
+              )),
+        ]),
+      ),
+      const SizedBox(height: 8),
+      for (final asset in mostTraded)
+        FSAssetRow(asset: asset,
+          onTap: () => openAsset(context, widget.store, asset)),
+      const SizedBox(height: 14),
+      const Center(child: Text('Índices e cotações demonstrativos',
+        style: TextStyle(fontSize: 11, color: fsMuted))),
+    ],
+  ));
+}
+
+class _MarketIndexRow extends StatelessWidget {
+  const _MarketIndexRow({required this.index});
+  final (String, String, String, String) index;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 2),
+    child: Row(children: [
+      SizedBox(width: 31, height: 31,
+        child: Center(child: Text(index.$1,
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)))),
+      const SizedBox(width: 10),
+      Expanded(child: Text(index.$2, maxLines: 1,
+        overflow: TextOverflow.ellipsis, style: const TextStyle(
+          fontSize: 13, fontWeight: FontWeight.w600))),
+      Text(index.$3, style: const TextStyle(fontSize: 12,
+        fontWeight: FontWeight.w600)),
+      const SizedBox(width: 13),
+      SizedBox(width: 54, child: Text(index.$4,
+        textAlign: TextAlign.end, style: const TextStyle(
+          fontSize: 12, color: fsGreen, fontWeight: FontWeight.w700))),
+    ]),
+  );
 }
 
 class SearchScreen extends StatefulWidget {
