@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'models/finance_models.dart';
 import 'ui/finsight_components.dart';
+import 'ui/brand_images.dart';
 
 class FinSightApp extends StatefulWidget {
   const FinSightApp({super.key});
@@ -76,6 +77,11 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    FSBrandImage.precacheAll(context);
+  }
   String activeFilter = 'Maiores Altas';
   List<FSAsset> get highlights {
     if (activeFilter == 'Maiores Baixas') {
