@@ -707,136 +707,187 @@ class OperationSheet extends StatefulWidget {
   @override
   State<OperationSheet> createState()=>_OperationSheetState();
 }
+
 class _OperationSheetState extends State<OperationSheet> {
-  late bool isBuy=widget.initialBuy;
-  DateTime selectedDate = DateTime.now();
+  late bool isBuy = widget.initialBuy;
+  late final TextEditingController qty;
+  late final TextEditingController unit;
+  DateTime selectedDate = DateTime(2024, 6, 10);
   String get selectedDateLabel =>
-    '${selectedDate.day.toString().padLeft(2, '0')}/'
-    '${selectedDate.month.toString().padLeft(2, '0')}/'
-    '${selectedDate.year}';
-  final qty=TextEditingController(text:'100');
-  final unit=TextEditingController(text:'37,50');
+      selectedDate.day.toString().padLeft(2, '0') + '/' +
+      selectedDate.month.toString().padLeft(2, '0') + '/' +
+      selectedDate.year.toString();
+
   @override
-  void initState(){
+  void initState() {
     super.initState();
-    unit.text=widget.asset.price.toStringAsFixed(2).replaceAll('.',',');
+    qty = TextEditingController(text: widget.initialBuy ? '100' : '50');
+    unit = TextEditingController(text: widget.asset.ticker == 'PETR4'
+        ? '37,50' : widget.asset.price.toStringAsFixed(2).replaceAll('.', ','));
     qty.addListener(_refresh);
     unit.addListener(_refresh);
   }
-  void _refresh(){if(mounted)setState((){});}
+  void _refresh() { if (mounted) setState(() {}); }
   @override
-  void dispose(){qty.removeListener(_refresh);unit.removeListener(_refresh);
-    qty.dispose();unit.dispose();super.dispose();}
-  double get price=>double.tryParse(unit.text
-    .replaceAll('.','').replaceAll(',','.'))??0;
-  int get quantity=>int.tryParse(qty.text)??0;
-  bool get isValid=>quantity>0 && price>0 &&
-    (isBuy || quantity<=widget.store.quantity(widget.asset.ticker));
+  void dispose() {
+    qty.removeListener(_refresh); unit.removeListener(_refresh);
+    qty.dispose(); unit.dispose(); super.dispose();
+  }
+  double get price => double.tryParse(
+      unit.text.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
+  int get quantity => int.tryParse(qty.text) ?? 0;
+  bool get isValid => quantity > 0 && price > 0 &&
+      (isBuy || quantity <= widget.store.quantity(widget.asset.ticker));
+
+  Widget label(String value) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(value, style: const TextStyle(
+      fontSize: 13, fontWeight: FontWeight.w700)));
+
   @override
-  Widget build(BuildContext context){
-    final color=isBuy?fsGreen:fsRed;
+  Widget build(BuildContext context) {
+    final accent = isBuy ? fsGreen : fsRed;
     return Padding(
-      padding:EdgeInsets.only(bottom:MediaQuery.viewInsetsOf(context).bottom),
-      child:ConstrainedBox(constraints:BoxConstraints(
-        maxHeight:MediaQuery.sizeOf(context).height*.9),
-        child:SingleChildScrollView(child:Padding(
-          padding:const EdgeInsets.fromLTRB(24,8,24,24),
-          child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,
-            mainAxisSize:MainAxisSize.min,children:[
-            const Text('Adicionar operação',style:TextStyle(
-              fontSize:20,fontWeight:FontWeight.w700)),
-            const SizedBox(height:6),
-            const Text('Registre seus investimentos',
-              style:TextStyle(color:fsMuted)),
-            const SizedBox(height:28),
-            SegmentedButton<bool>(
-              segments:const [
-                ButtonSegment(value:true,label:Text('Compra')),
-                ButtonSegment(value:false,label:Text('Venda')),
-              ],
-              selected:{isBuy},
-              onSelectionChanged:(value)=>setState(()=>isBuy=value.first),
-            ),
-            const SizedBox(height:26),
-            FSPanel(child:Row(children:[
-              FSAvatar(widget.asset.ticker),
-              const SizedBox(width:12),
-              Expanded(child:Column(crossAxisAlignment:
-                CrossAxisAlignment.start,children:[
-                Text(widget.asset.ticker,style:const TextStyle(
-                  fontWeight:FontWeight.w700)),
-                Text(widget.asset.name,style:const TextStyle(color:fsMuted)),
-              ])),
-              Text(fsMoney(widget.asset.price)),
-            ])),
-            const SizedBox(height:25),
-            Row(children:[
-              Expanded(child:TextField(
-                key:const ValueKey('operation-quantity'),
-                controller:qty,
-                keyboardType:TextInputType.number,
-                decoration:const InputDecoration(labelText:'Quantidade'),
-              )),
-              const SizedBox(width:12),
-              Expanded(child:TextField(
-                key:const ValueKey('operation-price'),
-                controller:unit,
-                keyboardType:const TextInputType.numberWithOptions(
-                  decimal:true),
-                decoration:const InputDecoration(labelText:'Preço unitário'),
-              )),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * .9),
+        child: SingleChildScrollView(child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min, children: [
+            Row(children: [
+              const Expanded(child: Text('Nova operação', style: TextStyle(
+                fontSize: 20, fontWeight: FontWeight.w700))),
+              IconButton(tooltip: 'Fechar', icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(context)),
             ]),
-            if(!isBuy && quantity>widget.store.quantity(widget.asset.ticker))
-              Padding(padding:const EdgeInsets.only(top:8),
-                child:Text('Quantidade superior ao saldo disponível ('
-                  + widget.store.quantity(widget.asset.ticker).toString()+').',
-                  style:const TextStyle(color:fsRed,fontSize:12))),
-            const SizedBox(height:20),
-            TextFormField(
-              key: ValueKey('operation-date-$selectedDateLabel'),
-              initialValue:selectedDateLabel,
-              readOnly:true,
-              onTap:() async {
-                final chosen = await showDatePicker(
-                  context:context,
-                  initialDate:selectedDate,
-                  firstDate:DateTime(2000),
-                  lastDate:DateTime(2100),
-                );
-                if (chosen!=null && mounted) {
-                  setState(()=>selectedDate=chosen);
-                }
-              },
-              decoration:const InputDecoration(
-                labelText:'Data da operação',
-                suffixIcon:Icon(Icons.calendar_today_outlined)),
+            const Text('Registre uma movimentação na carteira',
+              style: TextStyle(fontSize: 12, color: fsMuted)),
+            const SizedBox(height: 20),
+            const Divider(color: fsBorder, height: 1),
+            const SizedBox(height: 18),
+            label('Tipo de operação'),
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(color: fsCanvas,
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: fsBorder)),
+              child: Row(children: [
+                for (final buy in [true, false]) Expanded(child: SizedBox(
+                  height: 44, child: TextButton(
+                    key: ValueKey(buy ? 'operation-buy-tab' : 'operation-sell-tab'),
+                    onPressed: () => setState(() => isBuy = buy),
+                    style: TextButton.styleFrom(
+                      foregroundColor: isBuy == buy ? Colors.white : fsMuted,
+                      backgroundColor: isBuy == buy
+                        ? (buy ? fsGreen : fsRed) : Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8))),
+                    child: Text(buy ? 'Compra' : 'Venda',
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ))),
+              ]),
             ),
-            const SizedBox(height:20),
-            FSPanel(child:Column(
-              crossAxisAlignment:CrossAxisAlignment.start,children:[
-              const Text('Valor total estimado',
-                style:TextStyle(color:fsMuted)),
-              const SizedBox(height:8),
-              Text(fsMoney(quantity*price),style:const TextStyle(
-                fontSize:24,fontWeight:FontWeight.w700)),
+            const SizedBox(height: 18),
+            label('Ativo'),
+            FSPanel(child: Row(children: [
+              FSAvatar(widget.asset.ticker, size: 36),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.asset.ticker, style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w700)),
+                  Text(widget.asset.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12, color: fsMuted)),
+                ])),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text(fsMoney(widget.asset.price),
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 3),
+                Text(fsPercent(widget.asset.variation), style: TextStyle(
+                  color: widget.asset.variation >= 0 ? fsGreen : fsRed,
+                  fontSize: 12, fontWeight: FontWeight.w700)),
+              ]),
             ])),
-            const SizedBox(height:24),
-            Row(children:[
-              Expanded(child:OutlinedButton(
-                style:OutlinedButton.styleFrom(
-                  minimumSize:const Size.fromHeight(52)),
-                onPressed:()=>Navigator.pop(context),
-                child:const Text('Cancelar'))),
-              const SizedBox(width:12),
-              Expanded(flex:2,child:FilledButton(
-                key:const ValueKey('operation-submit'),
-                style:FilledButton.styleFrom(
-                  backgroundColor:color,
-                  minimumSize:const Size.fromHeight(52)),
-                onPressed:isValid ? ()=>Navigator.pop(context,FSOperation(
-                  asset:widget.asset,quantity:quantity,price:price,
-                  isBuy:isBuy,date:selectedDate)) : null,
-                child:Text(isBuy?'Registrar compra':'Registrar venda'))),
+            const SizedBox(height: 18),
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  label('Quantidade'),
+                  TextField(key: const ValueKey('operation-quantity'),
+                    controller: qty, keyboardType: TextInputType.number),
+                ])),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  label('Preço unitário'),
+                  TextField(key: const ValueKey('operation-price'),
+                    controller: unit,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(prefixText: 'R\$ ')),
+                ])),
+            ]),
+            if (!isBuy && quantity > widget.store.quantity(widget.asset.ticker))
+              Padding(padding: const EdgeInsets.only(top: 8),
+                child: Text('Quantidade superior ao saldo disponível (' +
+                  widget.store.quantity(widget.asset.ticker).toString() + ').',
+                  style: const TextStyle(color: fsRed, fontSize: 12))),
+            const SizedBox(height: 18),
+            label('Data da operação'),
+            TextFormField(
+              key: ValueKey('operation-date-' + selectedDateLabel),
+              initialValue: selectedDateLabel,
+              readOnly: true,
+              onTap: () async {
+                final picked = await showDatePicker(context: context,
+                  initialDate: selectedDate,
+                  firstDate: DateTime(2000), lastDate: DateTime(2100));
+                if (picked != null && mounted) setState(() => selectedDate = picked);
+              },
+              decoration: const InputDecoration(
+                suffixIcon: Icon(Icons.calendar_today_outlined))),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: fsCanvas,
+                border: Border.all(color: fsBorder),
+                borderRadius: BorderRadius.circular(12)),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Total estimado',
+                    style: TextStyle(fontSize: 12, color: fsMuted)),
+                  const SizedBox(height: 7),
+                  Text(fsMoney(quantity * price), style: const TextStyle(
+                    fontSize: 25, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 5),
+                  const Text('Sem taxas e impostos',
+                    style: TextStyle(fontSize: 11, color: fsMuted)),
+                ]),
+            ),
+            const SizedBox(height: 18),
+            const Divider(color: fsBorder, height: 1),
+            const SizedBox(height: 18),
+            Row(children: [
+              Expanded(child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                  side: const BorderSide(color: fsBorder)),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'))),
+              const SizedBox(width: 10),
+              Expanded(flex: 2, child: FilledButton(
+                key: const ValueKey('operation-submit'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: accent,
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10))),
+                onPressed: isValid ? () => Navigator.pop(context, FSOperation(
+                  asset: widget.asset, quantity: quantity, price: price,
+                  isBuy: isBuy, date: selectedDate)) : null,
+                child: FittedBox(fit: BoxFit.scaleDown,
+                  child: Text(isBuy ? 'Registrar compra' : 'Registrar venda')))),
             ]),
           ]),
         )),
@@ -844,7 +895,6 @@ class _OperationSheetState extends State<OperationSheet> {
     );
   }
 }
-
 class OperationConfirmation extends StatelessWidget {
   const OperationConfirmation({super.key,required this.operation});
   final FSOperation operation;
