@@ -1,0 +1,81 @@
+name: FinSight Flutter - SDK e validacao
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: finsight-flutter-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-test:
+    name: Flutter SDK, analyze e widget tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar Flutter e Dart
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Versoes e diagnostico
+        run: |
+          flutter --version
+          dart --version
+          flutter doctor -v
+
+      - name: Dependencias
+        run: flutter pub get
+
+      - name: Analise Dart e Flutter
+        run: flutter analyze
+
+      - name: Testes de widget
+        run: flutter test --reporter expanded
+
+      - name: Resumo
+        if: always()
+        run: |
+          echo '## FinSight — verificacao de infraestrutura' >> "$GITHUB_STEP_SUMMARY"
+          echo 'SDK Flutter/Dart, analise estatica e testes do app inicial.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Esta execução **não homologa o UI Kit V5.2 completo**.' >> "$GITHUB_STEP_SUMMARY"
+
+  build-web:
+    name: Build de preview Flutter Web
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Gerar suporte web no projeto
+        run: flutter create --platforms=web --project-name finsight_mobile .
+
+      - name: Dependencias
+        run: flutter pub get
+
+      - name: Build web
+        run: flutter build web --release
+
+      - name: Artefato de build
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finsight-flutter-web-bootstrap
+          path: build/web/
+          if-no-files-found: warn
+          retention-days: 14
