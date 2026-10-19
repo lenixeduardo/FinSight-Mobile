@@ -825,6 +825,9 @@ Future<void> openOperation(BuildContext context, FinSightStore store,
   FSAsset asset,{bool isBuy=true}) async {
   final op=await showModalBottomSheet<FSOperation>(
     context:context,isScrollControlled:true,useSafeArea:true,
+    constraints: BoxConstraints(
+      minHeight: MediaQuery.sizeOf(context).height * .9,
+      maxHeight: MediaQuery.sizeOf(context).height * .9),
     showDragHandle:true,backgroundColor:Colors.white,
     shape:const RoundedRectangleBorder(
       borderRadius:BorderRadius.vertical(top:Radius.circular(24))),
