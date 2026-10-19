@@ -662,6 +662,11 @@ class OperationSheet extends StatefulWidget {
 }
 class _OperationSheetState extends State<OperationSheet> {
   late bool isBuy=widget.initialBuy;
+  DateTime selectedDate = DateTime.now();
+  String get selectedDateLabel =>
+    '${selectedDate.day.toString().padLeft(2, '0')}/'
+    '${selectedDate.month.toString().padLeft(2, '0')}/'
+    '${selectedDate.year}';
   final qty=TextEditingController(text:'100');
   final unit=TextEditingController(text:'37,50');
   @override
@@ -741,8 +746,20 @@ class _OperationSheetState extends State<OperationSheet> {
                   style:const TextStyle(color:fsRed,fontSize:12))),
             const SizedBox(height:20),
             TextFormField(
-              initialValue:'19/10/2026',
+              key: ValueKey('operation-date-$selectedDateLabel'),
+              initialValue:selectedDateLabel,
               readOnly:true,
+              onTap:() async {
+                final chosen = await showDatePicker(
+                  context:context,
+                  initialDate:selectedDate,
+                  firstDate:DateTime(2000),
+                  lastDate:DateTime(2100),
+                );
+                if (chosen!=null && mounted) {
+                  setState(()=>selectedDate=chosen);
+                }
+              },
               decoration:const InputDecoration(
                 labelText:'Data da operação',
                 suffixIcon:Icon(Icons.calendar_today_outlined)),
@@ -771,7 +788,7 @@ class _OperationSheetState extends State<OperationSheet> {
                   minimumSize:const Size.fromHeight(52)),
                 onPressed:isValid ? ()=>Navigator.pop(context,FSOperation(
                   asset:widget.asset,quantity:quantity,price:price,
-                  isBuy:isBuy,date:DateTime.now())) : null,
+                  isBuy:isBuy,date:selectedDate)) : null,
                 child:Text(isBuy?'Registrar compra':'Registrar venda'))),
             ]),
           ]),
