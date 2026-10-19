@@ -24,6 +24,8 @@ void main() {
     await tester.scrollUntilVisible(find.text('PETR4'), 140,
       scrollable:find.byType(Scrollable).first);
     expect(find.text('PETR4'), findsWidgets);
+    await tester.scrollUntilVisible(find.text('VALE3'), 100,
+      scrollable: find.byType(Scrollable).first);
     expect(find.text('VALE3'), findsWidgets);
   });
 
