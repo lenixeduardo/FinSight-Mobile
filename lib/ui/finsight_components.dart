@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/finance_models.dart';
+import 'brand_images.dart';
 
 const fsGreen = Color(0xFF00A76F);
 const fsTextGreen = Color(0xFF007F56);
@@ -84,38 +85,13 @@ class FSHeading extends StatelessWidget {
   );
 }
 
+/// Logo da imagem de referencia, mantendo fallback nos ativos sem asset.
 class FSAvatar extends StatelessWidget {
-  const FSAvatar(this.ticker, {super.key, this.size = 42});
+  const FSAvatar(this.ticker, {super.key, this.size = 36});
   final String ticker;
   final double size;
   @override
-  Widget build(BuildContext context) {
-    final symbol = switch(ticker) {
-      'PETR4' => 'P',
-      'VALE3' => 'V',
-      'ITUB4' => 'I',
-      'MGLU3' => 'M',
-      'BTC' => '₿',
-      _ => ticker.substring(0, math.min(2, ticker.length)),
-    };
-    final color = switch(ticker) {
-      'PETR4' => const Color(0xFF008A5E),
-      'VALE3' => const Color(0xFF0F7D9B),
-      'ITUB4' => const Color(0xFFF97316),
-      'MGLU3' => const Color(0xFF0284C7),
-      _ => fsInk,
-    };
-    return Container(
-      width: size, height: size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: .09),
-        shape: BoxShape.circle,
-      ),
-      child: Text(symbol, style: TextStyle(color: color,
-        fontSize: size * .42, fontWeight: FontWeight.w800)),
-    );
-  }
+  Widget build(BuildContext context) => FSBrandImage(ticker, size: size);
 }
 
 class FSSparkline extends StatelessWidget {
@@ -157,6 +133,7 @@ class _LinePainter extends CustomPainter {
       old.values != values || old.color != color;
 }
 
+/// Linha interativa no estilo da referencia: sem contorno em cada ativo.
 class FSAssetRow extends StatelessWidget {
   const FSAssetRow({super.key, required this.asset, this.onTap,
     this.compact = false});
@@ -164,36 +141,46 @@ class FSAssetRow extends StatelessWidget {
   final VoidCallback? onTap;
   final bool compact;
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(12),
-    child: FSPanel(
-      child: Row(children: [
-        FSAvatar(asset.ticker),
-        const SizedBox(width: 12),
-        Expanded(child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(asset.ticker, style: const TextStyle(fontSize: 14,
-              fontWeight: FontWeight.w700)),
-            Text(asset.name, maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: fsMuted)),
-          ],
-        )),
-        if (!compact && MediaQuery.sizeOf(context).width >= 380)
-          SizedBox(width: 65, child: FSSparkline(
-          values: asset.history, positive: asset.variation >= 0,
-          height: 30)),
-        const SizedBox(width: 12),
-        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text(fsMoney(asset.price), style: const TextStyle(fontSize: 13,
-            fontWeight: FontWeight.w700)),
-          Text(fsPercent(asset.variation), style: TextStyle(fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: asset.variation >= 0 ? fsTextGreen : fsRed)),
-        ]),
-      ]),
-    ),
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, bounds) {
+      final showSparkline = !compact && bounds.maxWidth >= 328;
+      return InkWell(
+        key: ValueKey('asset-row-${asset.ticker}'),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 11),
+          child: Row(children: [
+            FSAvatar(asset.ticker, size: 32),
+            const SizedBox(width: 11),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(asset.ticker, style: const TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text(asset.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, color: fsMuted)),
+              ],
+            )),
+            if (showSparkline) ...[
+              SizedBox(width: 46, child: FSSparkline(
+                values: asset.history, positive: asset.variation >= 0,
+                height: 24)),
+              const SizedBox(width: 9),
+            ],
+            Column(crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min, children: [
+                Text(fsMoney(asset.price), style: const TextStyle(fontSize: 13,
+                  fontWeight: FontWeight.w700)),
+                const SizedBox(height: 3),
+                Text(fsPercent(asset.variation), style: TextStyle(fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: asset.variation >= 0 ? fsTextGreen : fsRed)),
+            ]),
+          ]),
+        ),
+      );
+    },
   );
 }
 

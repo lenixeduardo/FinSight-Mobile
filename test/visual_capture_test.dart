@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:finsight_mobile/finsight_app.dart';
 import 'package:finsight_mobile/models/finance_models.dart';
 import 'package:finsight_mobile/ui/finsight_components.dart';
+import 'package:finsight_mobile/ui/brand_images.dart';
 
 // Capturas geradas pelo renderizador Flutter em testes de widget.
 // Nao equivalem a screenshots de dispositivo Android/iOS.
@@ -48,6 +49,9 @@ void main() {
     addTearDown(() async { await tester.binding.setSurfaceSize(null); });
     await tester.pumpWidget(
       RepaintBoundary(key:boundaryKey, child:const FinSightApp()));
+    await tester.pumpAndSettle();
+    await tester.runAsync(() => FSBrandImage.precacheAll(
+      tester.element(find.byType(FinSightApp))));
     await tester.pumpAndSettle();
   }
 

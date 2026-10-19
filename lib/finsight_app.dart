@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'models/finance_models.dart';
 import 'ui/finsight_components.dart';
+import 'ui/brand_images.dart';
 
 class FinSightApp extends StatefulWidget {
   const FinSightApp({super.key});
@@ -66,57 +67,78 @@ class _FinSightShellState extends State<FinSightShell> {
   );
 }
 
-class DashboardScreen extends StatelessWidget {
+
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key, required this.store, required this.toMarket});
   final FinSightStore store;
   final VoidCallback toMarket;
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    FSBrandImage.precacheAll(context);
+  }
+  String activeFilter = 'Maiores Altas';
+  List<FSAsset> get highlights {
+    if (activeFilter == 'Maiores Baixas') {
+      final ordered = [...fsAssets]..sort((a,b) => a.variation.compareTo(b.variation));
+      return ordered.take(4).toList();
+    }
+    if (activeFilter == 'Mais Negociadas') {
+      return [fsAssets[0], fsAssets[2], fsAssets[1], fsAssets[3]];
+    }
+    // Mesma ordem da prancha visual aprovada, com dados demonstrativos.
+    return fsAssets.take(4).toList();
+  }
+
+  @override
   Widget build(BuildContext context) => SafeArea(child: ListView(
     key: const ValueKey('dashboard-screen'),
-    padding: const EdgeInsets.all(24),
+    padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
     children: [
       Row(children: [
         const Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Olá, Investidor', style: TextStyle(
-              fontSize: 24, fontWeight: FontWeight.w700)),
-            SizedBox(height: 4),
+              fontSize: 20, fontWeight: FontWeight.w700)),
+            SizedBox(height: 3),
             Text('Vamos analisar o mercado hoje?',
-              style: TextStyle(color: fsMuted)),
+              style: TextStyle(fontSize: 12, color: fsMuted)),
           ],
         )),
         IconButton(tooltip: 'Notificações',
           onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Nenhuma notificação no modo demo.'))),
-          icon: const Icon(Icons.notifications_none)),
+          icon: const Icon(Icons.notifications_none_outlined)),
       ]),
-      const SizedBox(height: 26),
-      FSPanel(child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      const SizedBox(height: 22),
+      FSPanel(child: SizedBox(height: 100, child: Row(
         children: [
-          const Text('Ibovespa', style: TextStyle(color: fsMuted)),
-          const SizedBox(height: 8),
-          const Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 10,
-            runSpacing: 6,
+          const Expanded(flex: 6, child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('128.532,17', style: TextStyle(
-                fontSize: 28, fontWeight: FontWeight.w700)),
-              Text('+1,42%', style: TextStyle(
+              Text('Ibovespa', style: TextStyle(fontSize: 13, color: fsMuted)),
+              SizedBox(height: 7),
+              FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft,
+                child: Text('128.532,17', style: TextStyle(
+                  fontSize: 26, fontWeight: FontWeight.w700))),
+              SizedBox(height: 7),
+              Text('+1,42%', style: TextStyle(fontSize: 15,
                 color: fsGreen, fontWeight: FontWeight.w700)),
             ],
-          ),
-          const SizedBox(height: 12),
-          FSSparkline(
+          )),
+          const SizedBox(width: 8),
+          Expanded(flex: 5, child: FSSparkline(
             values: fsAssets[0].history,
-            height: 90),
-          const SizedBox(height: 8),
-          const Text('Dados demonstrativos · não são cotações ao vivo',
-            style: TextStyle(fontSize: 11, color: fsMuted)),
+            height: 76)),
         ],
-      )),
+      ))),
       const SizedBox(height: 12),
       const Row(children: [
         Expanded(child: _IndexMini(name: 'Dólar', value: 'R\$ 5,23',
@@ -125,24 +147,44 @@ class DashboardScreen extends StatelessWidget {
         Expanded(child: _IndexMini(name: 'S&P 500', value: '4.982,31',
             change: '+0,62%')),
       ]),
-      const SizedBox(height: 28),
-      FSHeading('Destaques do dia', action: TextButton(
-        onPressed: toMarket, child: const Text('Ver todos'))),
-      for (final asset in fsAssets.take(4)) ...[
-        FSAssetRow(asset: asset, onTap: () => openAsset(
-          context, store, asset)),
-        const SizedBox(height: 8),
-      ],
+      const SizedBox(height: 25),
+      const FSHeading('Destaques do dia'),
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: [
+          for (final label in const [
+            'Maiores Altas', 'Maiores Baixas', 'Mais Negociadas'])
+            Padding(padding: const EdgeInsets.only(right: 7),
+              child: ChoiceChip(
+                key: ValueKey('highlight-$label'),
+                label: Text(label, style: const TextStyle(fontSize: 11)),
+                selected: activeFilter == label,
+                showCheckmark: false,
+                side: BorderSide(
+                  color: activeFilter == label ? fsGreen : fsBorder),
+                selectedColor: fsGreen.withValues(alpha: .09),
+                backgroundColor: Colors.white,
+                onSelected: (_) => setState(() => activeFilter = label),
+              )),
+        ]),
+      ),
+      const SizedBox(height: 8),
+      for (final asset in highlights)
+        FSAssetRow(asset: asset,
+          onTap: () => openAsset(context, widget.store, asset)),
       const SizedBox(height: 22),
       FSHeading('Seus favoritos', action: TextButton(
-        onPressed: toMarket, child: const Text('Explorar'))),
-      if (store.favorites.isEmpty)
-        const FSPanel(child: Text('Adicione seus ativos favoritos.'))
+        onPressed: widget.toMarket, child: const Text('Ver todos'))),
+      if (widget.store.favorites.isEmpty)
+        const FSPanel(child: Text('Seus próximos investimentos começam aqui. '
+          'Adicione ativos aos favoritos.'))
       else
-        for (final asset in store.favorites.take(3)) ...[
-          FSAssetRow(asset: asset, onTap: () => openAsset(context, store, asset)),
-          const SizedBox(height: 8),
-        ],
+        for (final asset in widget.store.favorites.take(3))
+          FSAssetRow(asset: asset,
+            onTap: () => openAsset(context, widget.store, asset)),
+      const SizedBox(height: 14),
+      const Center(child: Text('Dados demonstrativos · sem cotação ao vivo',
+        style: TextStyle(fontSize: 11, color: fsMuted))),
     ],
   ));
 }
@@ -151,15 +193,22 @@ class _IndexMini extends StatelessWidget {
   const _IndexMini({required this.name, required this.value, required this.change});
   final String name, value, change;
   @override
-  Widget build(BuildContext context) => FSPanel(child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(name, style: const TextStyle(color: fsMuted, fontSize: 12)),
-      const SizedBox(height: 6),
-      Text(value, style: const TextStyle(
-        fontWeight: FontWeight.w700, fontSize: 18)),
-      Text(change, style: const TextStyle(
-        color: fsGreen, fontWeight: FontWeight.w600, fontSize: 12)),
-    ],
+  Widget build(BuildContext context) => FSPanel(child: SizedBox(
+    height: 80,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(name, style: const TextStyle(color: fsMuted, fontSize: 12)),
+        const SizedBox(height: 6),
+        FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft,
+          child: Text(value, style: const TextStyle(
+            fontWeight: FontWeight.w700, fontSize: 18))),
+        const SizedBox(height: 4),
+        Text(change, style: const TextStyle(
+          color: fsGreen, fontWeight: FontWeight.w600, fontSize: 12)),
+      ],
+    ),
   ));
 }
 
@@ -170,55 +219,187 @@ class MarketsScreen extends StatefulWidget {
   State<MarketsScreen> createState() => _MarketsScreenState();
 }
 
+
 class _MarketsScreenState extends State<MarketsScreen> {
-  String category='Todos';
+  String activeTab = 'Índices';
+  String assetFilter = 'Ações';
+
+  static const indices = <(String, String, String, String)>[
+    ('BR', 'Ibovespa', '128.532,17', '+1,42%'),
+    ('BR', 'IFIX', '3.214,08', '+0,31%'),
+    ('US', 'S&P 500', '4.982,31', '+0,62%'),
+    ('US', 'NASDAQ', '15.628,24', '+0,38%'),
+    ('BR', 'Dólar', 'R\$ 5,23', '+0,16%'),
+    ('EU', 'Euro', 'R\$ 5,71', '+0,12%'),
+    ('%', 'CDI', '10,65%', '0,00%'),
+  ];
+  static const cambio = <(String, String, String, String)>[
+    ('US', 'Dólar', 'R\$ 5,23', '+0,16%'),
+    ('EU', 'Euro', 'R\$ 5,71', '+0,12%'),
+  ];
+  static const commodities = <(String, String, String, String)>[
+    ('AU', 'Ouro', 'US\$ 2.371,00', '+0,36%'),
+    ('BR', 'Petróleo Brent', 'US\$ 80,40', '+0,81%'),
+  ];
+  static const setores = <(String, String, String, String)>[
+    ('FIN', 'Financeiro', '5.742,10', '+0,82%'),
+    ('ENE', 'Energia', '4.038,40', '+0,55%'),
+  ];
+  List<(String,String,String,String)> get marketRows =>
+      switch (activeTab) {
+        'Câmbio' => cambio,
+        'Commodities' => commodities,
+        'Setores' => setores,
+        _ => indices,
+      };
+  List<FSAsset> get mostTraded =>
+      assetFilter == 'Ações'
+        ? fsAssets.where((a) => a.category == 'Ações').take(4).toList()
+        : fsAssets.where((a) => a.category == assetFilter).toList();
+
+  @override
+  Widget build(BuildContext context) => SafeArea(child: ListView(
+    key: const ValueKey('markets-screen'),
+    padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+    children: [
+      const Text('Mercado', style: TextStyle(
+        fontSize: 23, fontWeight: FontWeight.w700)),
+      const SizedBox(height: 17),
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: [
+          for (final category in const ['Índices','Câmbio','Commodities','Setores'])
+            TextButton(
+              key: ValueKey('market-$category'),
+              onPressed: () => setState(() => activeTab = category),
+              style: TextButton.styleFrom(
+                foregroundColor: activeTab == category ? fsGreen : fsMuted),
+              child: Text(category, style: TextStyle(
+                fontSize: 12,
+                fontWeight: activeTab == category
+                  ? FontWeight.w700 : FontWeight.w500)),
+            ),
+        ]),
+      ),
+      const Divider(height: 1, color: fsBorder),
+      const SizedBox(height: 8),
+      for (final index in marketRows)
+        _MarketIndexRow(index: index),
+      const SizedBox(height: 22),
+      const FSHeading('Mais negociadas'),
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: [
+          for (final filter in const ['Ações','Fundos','ETF','Cripto'])
+            Padding(padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(filter, style: const TextStyle(fontSize: 11)),
+                selected: assetFilter == filter,
+                showCheckmark: false,
+                selectedColor: fsGreen.withValues(alpha: .10),
+                backgroundColor: Colors.white,
+                side: BorderSide(color: assetFilter == filter
+                  ? fsGreen : fsBorder),
+                onSelected: (_) => setState(() => assetFilter = filter),
+              )),
+        ]),
+      ),
+      const SizedBox(height: 8),
+      for (final asset in mostTraded)
+        FSAssetRow(asset: asset,
+          onTap: () => openAsset(context, widget.store, asset)),
+      const SizedBox(height: 14),
+      const Center(child: Text('Índices e cotações demonstrativos',
+        style: TextStyle(fontSize: 11, color: fsMuted))),
+    ],
+  ));
+}
+
+class _MarketIndexRow extends StatelessWidget {
+  const _MarketIndexRow({required this.index});
+  final (String, String, String, String) index;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 2),
+    child: Row(children: [
+      SizedBox(width: 31, height: 31,
+        child: _MarketFlag(code: index.$1)),
+      const SizedBox(width: 10),
+      Expanded(child: Text(index.$2, maxLines: 1,
+        overflow: TextOverflow.ellipsis, style: const TextStyle(
+          fontSize: 13, fontWeight: FontWeight.w600))),
+      Text(index.$3, style: const TextStyle(fontSize: 12,
+        fontWeight: FontWeight.w600)),
+      const SizedBox(width: 13),
+      SizedBox(width: 54, child: Text(index.$4,
+        textAlign: TextAlign.end, style: const TextStyle(
+          fontSize: 12, color: fsGreen, fontWeight: FontWeight.w700))),
+    ]),
+  );
+}
+
+
+class _MarketFlag extends StatelessWidget {
+  const _MarketFlag({required this.code});
+  final String code;
   @override
   Widget build(BuildContext context) {
-    final list = category=='Todos' ? fsAssets
-      : fsAssets.where((a)=>a.category==category).toList();
-    return SafeArea(child: ListView(
-      key: const ValueKey('markets-screen'),
-      padding: const EdgeInsets.all(24),
-      children: [
-        const Text('Mercado', style: TextStyle(
-          fontSize: 24, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 4),
-        const Text('Acompanhe ativos e indicadores',
-          style: TextStyle(color: fsMuted)),
-        const SizedBox(height: 24),
-        const FSHeading('Principais índices'),
-        const _IndexMini(name: 'Ibovespa', value: '128.532,17', change: '+1,42%'),
-        const SizedBox(height: 12),
-        const Row(children: [
-          Expanded(child: _IndexMini(name: 'Dólar', value: 'R\$ 5,23',
-            change: '+0,16%')),
-          SizedBox(width: 12),
-          Expanded(child: _IndexMini(name: 'S&P 500', value: '4.982,31',
-            change: '+0,62%')),
-        ]),
-        const SizedBox(height: 26),
-        const FSHeading('Ativos'),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(children: [
-            for (final filter in ['Todos','Ações','ETF','Fundos','Cripto'])
-              Padding(padding: const EdgeInsets.only(right: 8),
-                child: ChoiceChip(
-                  label: Text(filter),
-                  selected: category==filter,
-                  onSelected: (_) => setState(()=>category=filter),
-                )),
-          ]),
-        ),
-        const SizedBox(height: 16),
-        for (final asset in list) ...[
-          FSAssetRow(asset: asset,
-            onTap: () => openAsset(context, widget.store, asset)),
-          const SizedBox(height: 8),
-        ],
-      ],
-    ));
+    if (code == 'BR' || code == 'US' || code == 'EU') {
+      return CustomPaint(size: const Size(27,27),
+        painter: _CircularFlagPainter(code));
+    }
+    return CircleAvatar(
+      backgroundColor: fsCanvas,
+      child: Text(code, style: const TextStyle(fontSize: 10,
+        color: fsInk, fontWeight: FontWeight.w700)));
   }
+}
+
+class _CircularFlagPainter extends CustomPainter {
+  const _CircularFlagPainter(this.code);
+  final String code;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center=Offset(size.width/2,size.height/2);
+    final radius=size.shortestSide/2;
+    final circular=Path()..addOval(Rect.fromCircle(center:center,radius:radius));
+    canvas.save();
+    canvas.clipPath(circular);
+    if(code=='BR') {
+      canvas.drawColor(const Color(0xFF15944C),BlendMode.srcOver);
+      final diamond=Path()..moveTo(center.dx,radius*.35)
+        ..lineTo(size.width-radius*.2,center.dy)
+        ..lineTo(center.dx,size.height-radius*.35)
+        ..lineTo(radius*.2,center.dy)..close();
+      canvas.drawPath(diamond,Paint()..color=const Color(0xFFF4D03F));
+      canvas.drawCircle(center,radius*.35,Paint()..color=const Color(0xFF2350A3));
+    } else if(code=='US') {
+      canvas.drawColor(Colors.white,BlendMode.srcOver);
+      final stripe=size.height/11;
+      for(var row=0;row<11;row+=2) {
+        canvas.drawRect(Rect.fromLTWH(0,row*stripe,size.width,stripe),
+          Paint()..color=const Color(0xFFCF3145));
+      }
+      canvas.drawRect(Rect.fromLTWH(0,0,size.width*.53,size.height*.57),
+        Paint()..color=const Color(0xFF244482));
+      for(final pt in [const Offset(4,4),const Offset(10,4),
+          const Offset(4,10),const Offset(10,10)]) {
+        canvas.drawCircle(pt,1,Paint()..color=Colors.white);
+      }
+    } else {
+      canvas.drawColor(const Color(0xFF2446A2),BlendMode.srcOver);
+      final star=Paint()..color=const Color(0xFFFACC15);
+      for(final point in [const Offset(.5,.18),const Offset(.7,.27),
+        const Offset(.8,.5),const Offset(.7,.73),const Offset(.5,.82),
+        const Offset(.3,.73),const Offset(.2,.5),const Offset(.3,.27)]) {
+        canvas.drawCircle(Offset(size.width*point.dx,size.height*point.dy),
+          1.25,star);
+      }
+    }
+    canvas.restore();
+  }
+  @override
+  bool shouldRepaint(covariant _CircularFlagPainter old) => old.code != code;
 }
 
 class SearchScreen extends StatefulWidget {
@@ -664,136 +845,187 @@ class OperationSheet extends StatefulWidget {
   @override
   State<OperationSheet> createState()=>_OperationSheetState();
 }
+
 class _OperationSheetState extends State<OperationSheet> {
-  late bool isBuy=widget.initialBuy;
-  DateTime selectedDate = DateTime.now();
+  late bool isBuy = widget.initialBuy;
+  late final TextEditingController qty;
+  late final TextEditingController unit;
+  DateTime selectedDate = DateTime(2024, 6, 10);
   String get selectedDateLabel =>
-    '${selectedDate.day.toString().padLeft(2, '0')}/'
-    '${selectedDate.month.toString().padLeft(2, '0')}/'
-    '${selectedDate.year}';
-  final qty=TextEditingController(text:'100');
-  final unit=TextEditingController(text:'37,50');
+      selectedDate.day.toString().padLeft(2, '0') + '/' +
+      selectedDate.month.toString().padLeft(2, '0') + '/' +
+      selectedDate.year.toString();
+
   @override
-  void initState(){
+  void initState() {
     super.initState();
-    unit.text=widget.asset.price.toStringAsFixed(2).replaceAll('.',',');
+    qty = TextEditingController(text: widget.initialBuy ? '100' : '50');
+    unit = TextEditingController(text: widget.asset.ticker == 'PETR4'
+        ? '37,50' : widget.asset.price.toStringAsFixed(2).replaceAll('.', ','));
     qty.addListener(_refresh);
     unit.addListener(_refresh);
   }
-  void _refresh(){if(mounted)setState((){});}
+  void _refresh() { if (mounted) setState(() {}); }
   @override
-  void dispose(){qty.removeListener(_refresh);unit.removeListener(_refresh);
-    qty.dispose();unit.dispose();super.dispose();}
-  double get price=>double.tryParse(unit.text
-    .replaceAll('.','').replaceAll(',','.'))??0;
-  int get quantity=>int.tryParse(qty.text)??0;
-  bool get isValid=>quantity>0 && price>0 &&
-    (isBuy || quantity<=widget.store.quantity(widget.asset.ticker));
+  void dispose() {
+    qty.removeListener(_refresh); unit.removeListener(_refresh);
+    qty.dispose(); unit.dispose(); super.dispose();
+  }
+  double get price => double.tryParse(
+      unit.text.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
+  int get quantity => int.tryParse(qty.text) ?? 0;
+  bool get isValid => quantity > 0 && price > 0 &&
+      (isBuy || quantity <= widget.store.quantity(widget.asset.ticker));
+
+  Widget label(String value) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(value, style: const TextStyle(
+      fontSize: 13, fontWeight: FontWeight.w700)));
+
   @override
-  Widget build(BuildContext context){
-    final color=isBuy?fsGreen:fsRed;
+  Widget build(BuildContext context) {
+    final accent = isBuy ? fsGreen : fsRed;
     return Padding(
-      padding:EdgeInsets.only(bottom:MediaQuery.viewInsetsOf(context).bottom),
-      child:ConstrainedBox(constraints:BoxConstraints(
-        maxHeight:MediaQuery.sizeOf(context).height*.9),
-        child:SingleChildScrollView(child:Padding(
-          padding:const EdgeInsets.fromLTRB(24,8,24,24),
-          child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,
-            mainAxisSize:MainAxisSize.min,children:[
-            const Text('Adicionar operação',style:TextStyle(
-              fontSize:20,fontWeight:FontWeight.w700)),
-            const SizedBox(height:6),
-            const Text('Registre seus investimentos',
-              style:TextStyle(color:fsMuted)),
-            const SizedBox(height:28),
-            SegmentedButton<bool>(
-              segments:const [
-                ButtonSegment(value:true,label:Text('Compra')),
-                ButtonSegment(value:false,label:Text('Venda')),
-              ],
-              selected:{isBuy},
-              onSelectionChanged:(value)=>setState(()=>isBuy=value.first),
-            ),
-            const SizedBox(height:26),
-            FSPanel(child:Row(children:[
-              FSAvatar(widget.asset.ticker),
-              const SizedBox(width:12),
-              Expanded(child:Column(crossAxisAlignment:
-                CrossAxisAlignment.start,children:[
-                Text(widget.asset.ticker,style:const TextStyle(
-                  fontWeight:FontWeight.w700)),
-                Text(widget.asset.name,style:const TextStyle(color:fsMuted)),
-              ])),
-              Text(fsMoney(widget.asset.price)),
-            ])),
-            const SizedBox(height:25),
-            Row(children:[
-              Expanded(child:TextField(
-                key:const ValueKey('operation-quantity'),
-                controller:qty,
-                keyboardType:TextInputType.number,
-                decoration:const InputDecoration(labelText:'Quantidade'),
-              )),
-              const SizedBox(width:12),
-              Expanded(child:TextField(
-                key:const ValueKey('operation-price'),
-                controller:unit,
-                keyboardType:const TextInputType.numberWithOptions(
-                  decimal:true),
-                decoration:const InputDecoration(labelText:'Preço unitário'),
-              )),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * .9),
+        child: SingleChildScrollView(child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min, children: [
+            Row(children: [
+              const Expanded(child: Text('Nova operação', style: TextStyle(
+                fontSize: 20, fontWeight: FontWeight.w700))),
+              IconButton(tooltip: 'Fechar', icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(context)),
             ]),
-            if(!isBuy && quantity>widget.store.quantity(widget.asset.ticker))
-              Padding(padding:const EdgeInsets.only(top:8),
-                child:Text('Quantidade superior ao saldo disponível ('
-                  + widget.store.quantity(widget.asset.ticker).toString()+').',
-                  style:const TextStyle(color:fsRed,fontSize:12))),
-            const SizedBox(height:20),
-            TextFormField(
-              key: ValueKey('operation-date-$selectedDateLabel'),
-              initialValue:selectedDateLabel,
-              readOnly:true,
-              onTap:() async {
-                final chosen = await showDatePicker(
-                  context:context,
-                  initialDate:selectedDate,
-                  firstDate:DateTime(2000),
-                  lastDate:DateTime(2100),
-                );
-                if (chosen!=null && mounted) {
-                  setState(()=>selectedDate=chosen);
-                }
-              },
-              decoration:const InputDecoration(
-                labelText:'Data da operação',
-                suffixIcon:Icon(Icons.calendar_today_outlined)),
+            const Text('Registre uma movimentação na carteira',
+              style: TextStyle(fontSize: 12, color: fsMuted)),
+            const SizedBox(height: 20),
+            const Divider(color: fsBorder, height: 1),
+            const SizedBox(height: 18),
+            label('Tipo de operação'),
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(color: fsCanvas,
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: fsBorder)),
+              child: Row(children: [
+                for (final buy in [true, false]) Expanded(child: SizedBox(
+                  height: 44, child: TextButton(
+                    key: ValueKey(buy ? 'operation-buy-tab' : 'operation-sell-tab'),
+                    onPressed: () => setState(() => isBuy = buy),
+                    style: TextButton.styleFrom(
+                      foregroundColor: isBuy == buy ? Colors.white : fsMuted,
+                      backgroundColor: isBuy == buy
+                        ? (buy ? fsGreen : fsRed) : Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8))),
+                    child: Text(buy ? 'Compra' : 'Venda',
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ))),
+              ]),
             ),
-            const SizedBox(height:20),
-            FSPanel(child:Column(
-              crossAxisAlignment:CrossAxisAlignment.start,children:[
-              const Text('Valor total estimado',
-                style:TextStyle(color:fsMuted)),
-              const SizedBox(height:8),
-              Text(fsMoney(quantity*price),style:const TextStyle(
-                fontSize:24,fontWeight:FontWeight.w700)),
+            const SizedBox(height: 18),
+            label('Ativo'),
+            FSPanel(child: Row(children: [
+              FSAvatar(widget.asset.ticker, size: 36),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.asset.ticker, style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w700)),
+                  Text(widget.asset.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12, color: fsMuted)),
+                ])),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text(fsMoney(widget.asset.price),
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 3),
+                Text(fsPercent(widget.asset.variation), style: TextStyle(
+                  color: widget.asset.variation >= 0 ? fsGreen : fsRed,
+                  fontSize: 12, fontWeight: FontWeight.w700)),
+              ]),
             ])),
-            const SizedBox(height:24),
-            Row(children:[
-              Expanded(child:OutlinedButton(
-                style:OutlinedButton.styleFrom(
-                  minimumSize:const Size.fromHeight(52)),
-                onPressed:()=>Navigator.pop(context),
-                child:const Text('Cancelar'))),
-              const SizedBox(width:12),
-              Expanded(flex:2,child:FilledButton(
-                key:const ValueKey('operation-submit'),
-                style:FilledButton.styleFrom(
-                  backgroundColor:color,
-                  minimumSize:const Size.fromHeight(52)),
-                onPressed:isValid ? ()=>Navigator.pop(context,FSOperation(
-                  asset:widget.asset,quantity:quantity,price:price,
-                  isBuy:isBuy,date:selectedDate)) : null,
-                child:Text(isBuy?'Registrar compra':'Registrar venda'))),
+            const SizedBox(height: 18),
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  label('Quantidade'),
+                  TextField(key: const ValueKey('operation-quantity'),
+                    controller: qty, keyboardType: TextInputType.number),
+                ])),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  label('Preço unitário'),
+                  TextField(key: const ValueKey('operation-price'),
+                    controller: unit,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(prefixText: 'R\$ ')),
+                ])),
+            ]),
+            if (!isBuy && quantity > widget.store.quantity(widget.asset.ticker))
+              Padding(padding: const EdgeInsets.only(top: 8),
+                child: Text('Quantidade superior ao saldo disponível (' +
+                  widget.store.quantity(widget.asset.ticker).toString() + ').',
+                  style: const TextStyle(color: fsRed, fontSize: 12))),
+            const SizedBox(height: 18),
+            label('Data da operação'),
+            TextFormField(
+              key: ValueKey('operation-date-' + selectedDateLabel),
+              initialValue: selectedDateLabel,
+              readOnly: true,
+              onTap: () async {
+                final picked = await showDatePicker(context: context,
+                  initialDate: selectedDate,
+                  firstDate: DateTime(2000), lastDate: DateTime(2100));
+                if (picked != null && mounted) setState(() => selectedDate = picked);
+              },
+              decoration: const InputDecoration(
+                suffixIcon: Icon(Icons.calendar_today_outlined))),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: fsCanvas,
+                border: Border.all(color: fsBorder),
+                borderRadius: BorderRadius.circular(12)),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Total estimado',
+                    style: TextStyle(fontSize: 12, color: fsMuted)),
+                  const SizedBox(height: 7),
+                  Text(fsMoney(quantity * price), style: const TextStyle(
+                    fontSize: 25, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 5),
+                  const Text('Sem taxas e impostos',
+                    style: TextStyle(fontSize: 11, color: fsMuted)),
+                ]),
+            ),
+            const SizedBox(height: 18),
+            const Divider(color: fsBorder, height: 1),
+            const SizedBox(height: 18),
+            Row(children: [
+              Expanded(child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                  side: const BorderSide(color: fsBorder)),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'))),
+              const SizedBox(width: 10),
+              Expanded(flex: 2, child: FilledButton(
+                key: const ValueKey('operation-submit'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: accent,
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10))),
+                onPressed: isValid ? () => Navigator.pop(context, FSOperation(
+                  asset: widget.asset, quantity: quantity, price: price,
+                  isBuy: isBuy, date: selectedDate)) : null,
+                child: FittedBox(fit: BoxFit.scaleDown,
+                  child: Text(isBuy ? 'Registrar compra' : 'Registrar venda')))),
             ]),
           ]),
         )),
@@ -801,7 +1033,6 @@ class _OperationSheetState extends State<OperationSheet> {
     );
   }
 }
-
 class OperationConfirmation extends StatelessWidget {
   const OperationConfirmation({super.key,required this.operation});
   final FSOperation operation;
