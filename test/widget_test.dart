@@ -98,7 +98,6 @@ void main() {
 
   testWidgets('Modal permite selecionar data da operacao', (tester) async {
     await tester.pumpWidget(const FinSightApp());
-    await tester.ensureVisible(find.text('PETR4').first);
     await tester.scrollUntilVisible(find.text('PETR4'), 140,
       scrollable:find.byType(Scrollable).first);
     await tester.tap(find.text('PETR4').first);
