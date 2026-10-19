@@ -1,7 +1,7 @@
 name: finsight_mobile
 description: FinSight Mobile - demonstracao navegavel Flutter/Dart V5.2
 publish_to: none
-version: 0.5.7+7
+version: 0.5.8+8
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   shared_preferences: ^2.5.3
+  supabase_flutter: ^2.10.0
 
 dev_dependencies:
   flutter_test:
