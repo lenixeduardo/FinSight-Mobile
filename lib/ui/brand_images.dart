@@ -16,6 +16,11 @@ class FSBrandImage extends StatelessWidget {
     'MGLU3': base64Decode('iVBORw0KGgoAAAANSUhEUgAAADEAAAA0CAMAAAAUjyCdAAAAkFBMVEUBfPv5+/0Egfwxk/lOpfyz3P3M6P1wuvrb8v274f2MyfwtjvdCmPt4wfkakP02o/ua0f0Abvlasf9srvwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAfwbrAAAAMHRSTlP//////////////////////////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABPNGsBAAABhklEQVR42u2V2XKFIAyGf8Im2LO17/+uVQi7Hg+3nWacUSEfCUkIELOCf+KPEIu26q3Y59IQXoKFiHAsd7tkwsigeSGAdEw4AqGdKwb3v/QC6UAs6zhZI2WQcF92wsa58FwIQW2EuVasGQfhpwB8Q9jXhP62E4gvTBGAkFMEzRGoCPrcTEMo54wzzxqXXmunb9QTnFPNZVktaeKQTF5EIpcTE0LxPMGLjkBDUCI0VxOkuCBcUrBol9iSdkGY6KUSV4TJGh7tf0fkA1g0hNxMWDFDeKK7qYmDfCRiiYoPjqypCBqIsHPnubvEQNuRqE55CKZ5hGVNjKyynA8uwyNioZ/iv8btA0KibFkeEXIkVJV7W6qE+p0jE6kA99TbIxs0EGuuYSbWC4Ki9xo58YmgUyIkU80QIMlH5HQf6IjcOjoCBzYMnRIYCNMSYfA2doY1XzccocrG9hWqzNEJwbao6ZrtWBMrKsuUab6cqOtX6O+/5lpDFacu56ORrFo7sNdnNv62p/PXL14pDQGS6FiFAAAAAElFTkSuQmCC'),
   };
 
+  static Future<void> precacheAll(BuildContext context) async {
+    await Future.wait(_raster.values.map(
+      (bytes) => precacheImage(MemoryImage(bytes), context)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final png = _raster[ticker];
