@@ -994,7 +994,7 @@ class _OperationSheetState extends State<OperationSheet> {
       const SizedBox(height:19),
       Container(
         height:86,
-        padding:const EdgeInsets.fromLTRB(16,10,16,8),
+        padding:const EdgeInsets.fromLTRB(16,8,16,4),
         decoration:BoxDecoration(color:fsCanvas,
           border:Border.all(color:fsBorder),
           borderRadius:BorderRadius.circular(11)),
