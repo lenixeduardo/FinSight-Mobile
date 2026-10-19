@@ -2,9 +2,60 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:finsight_mobile/finsight_app.dart';
+import 'package:finsight_mobile/auth/auth_service.dart';
 import 'package:finsight_mobile/models/finance_models.dart';
 
+class _FakeLocalAuth implements FinSightAuthService {
+  bool signedIn = false;
+  int signUpCalls = 0;
+  @override
+  Future<bool> restoreSession() async => signedIn;
+  @override
+  Future<void> signUp(String email, String password) async {
+    if (email != 'teste@finsight.com') {
+      throw const FinSightAuthFailure('E-mail inválido');
+    }
+    signUpCalls++;
+    signedIn = true;
+  }
+  @override
+  Future<void> signIn(String email, String password) async {
+    signedIn = true;
+  }
+  @override
+  Future<void> signOut() async { signedIn = false; }
+}
+
 void main() {
+  testWidgets('Cadastro local entra no app e permite logout',
+      (tester) async {
+    final service = _FakeLocalAuth();
+    await tester.pumpWidget(FinSightApp(
+      initialStage: FinSightEntryStage.login,
+      authService: service,
+    ));
+    await tester.ensureVisible(find.byKey(const ValueKey('auth-switch-mode')));
+    await tester.tap(find.byKey(const ValueKey('auth-switch-mode')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('login-email')),
+      'teste@finsight.com');
+    await tester.enterText(find.byKey(const ValueKey('login-password')),
+      'senha-de-teste-123');
+    await tester.ensureVisible(find.byKey(const ValueKey('login-submit')));
+    await tester.tap(find.byKey(const ValueKey('login-submit')));
+    await tester.pumpAndSettle();
+    expect(service.signUpCalls, 1);
+    expect(find.byKey(const ValueKey('dashboard-screen')), findsOneWidget);
+    await tester.tap(find.text('Mais').last);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('demo-sign-out')),
+      130, scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.byKey(const ValueKey('demo-sign-out')));
+    await tester.pumpAndSettle();
+    expect(service.signedIn, isFalse);
+    expect(find.text('Bem-vindo de volta'), findsOneWidget);
+  });
+
   testWidgets('Splash inicia antes do onboarding na primeira visita',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
