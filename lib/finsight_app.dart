@@ -1015,9 +1015,9 @@ class _OperationSheetState extends State<OperationSheet> {
     decoration:const BoxDecoration(color:Colors.white,
       border:Border(top:BorderSide(color:fsBorder))),
     child:Padding(
-      padding:const EdgeInsets.fromLTRB(24,18,24,26),
+      padding:const EdgeInsets.fromLTRB(24,21,24,34),
       child:Row(children:[
-        Expanded(flex:1,child:SizedBox(height:52,child:OutlinedButton(
+        SizedBox(width:116,child:SizedBox(height:52,child:OutlinedButton(
           style:OutlinedButton.styleFrom(
             padding:EdgeInsets.zero,
             foregroundColor:fsInk,
@@ -1029,7 +1029,7 @@ class _OperationSheetState extends State<OperationSheet> {
             fontWeight:FontWeight.w700,fontSize:13)),
         ))),
         const SizedBox(width:12),
-        Expanded(flex:2,child:SizedBox(height:52,child:FilledButton(
+        Expanded(child:SizedBox(height:52,child:FilledButton(
           key:const ValueKey('operation-submit'),
           style:FilledButton.styleFrom(
             padding:const EdgeInsets.symmetric(horizontal:4),
@@ -1061,16 +1061,17 @@ class _OperationSheetState extends State<OperationSheet> {
           child:Container(width:36,height:4,
             decoration:BoxDecoration(color:fsBorder,
               borderRadius:BorderRadius.circular(4))))),
-        Padding(padding:const EdgeInsets.fromLTRB(24,13,16,18),
+        Padding(padding:const EdgeInsets.fromLTRB(24,4,16,12),
           child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            Row(children:[
+            SizedBox(height:44,child:Row(children:[
               const Expanded(child:Text('Nova operação',
                 style:TextStyle(fontSize:20,fontWeight:FontWeight.w700))),
               IconButton(
                 tooltip:'Fechar',onPressed:()=>Navigator.pop(context),
+                padding:EdgeInsets.zero,
+                constraints:const BoxConstraints.tightFor(width:44,height:44),
                 icon:const Icon(Icons.close,size:21,color:fsMuted)),
-            ]),
-            const SizedBox(height:2),
+            ])),
             const Text('Registre uma movimentação na carteira',
               style:TextStyle(fontSize:12,color:fsMuted)),
           ]),
