@@ -22,7 +22,7 @@ ThemeData finSightTheme() {
   );
   return base.copyWith(
     appBarTheme: const AppBarTheme(
-      color: Colors.white,
+      backgroundColor: Colors.white,
       foregroundColor: fsInk,
       centerTitle: false,
       elevation: 0,
