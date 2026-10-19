@@ -135,7 +135,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ))),
       const SizedBox(height: 12),
       const Row(children: [
-        Expanded(child: _IndexMini(name: 'Dólar', value: 'R$ 5,23',
+        Expanded(child: _IndexMini(name: 'Dólar', value: 'R\$ 5,23',
             change: '+0,16%')),
         SizedBox(width: 12),
         Expanded(child: _IndexMini(name: 'S&P 500', value: '4.982,31',
