@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'models/finance_models.dart';
 import 'ui/finsight_components.dart';
 import 'ui/brand_images.dart';
+import 'ui/login_screen.dart';
 
 class FinSightApp extends StatefulWidget {
   const FinSightApp({super.key});
@@ -11,14 +12,21 @@ class FinSightApp extends StatefulWidget {
 
 class _FinSightAppState extends State<FinSightApp> {
   final store = FinSightStore();
+  bool isDemoSession = false;
+
   @override
   void dispose() { store.dispose(); super.dispose(); }
+
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
     title: 'FinSight',
     theme: finSightTheme(),
-    home: FinSightShell(store: store),
+    home: isDemoSession
+      ? FinSightShell(store: store,
+          onSignOut: () => setState(() => isDemoSession = false))
+      : FinSightLoginScreen(
+          onEnterDemo: () => setState(() => isDemoSession = true)),
   );
 }
 
@@ -28,8 +36,9 @@ void openAsset(BuildContext context, FinSightStore store, FSAsset asset) {
 }
 
 class FinSightShell extends StatefulWidget {
-  const FinSightShell({super.key, required this.store});
+  const FinSightShell({super.key, required this.store, required this.onSignOut});
   final FinSightStore store;
+  final VoidCallback onSignOut;
   @override
   State<FinSightShell> createState() => _FinSightShellState();
 }
@@ -45,7 +54,7 @@ class _FinSightShellState extends State<FinSightShell> {
         MarketsScreen(store: widget.store),
         SearchScreen(store: widget.store),
         PortfolioScreen(store: widget.store),
-        MoreScreen(store: widget.store),
+        MoreScreen(store: widget.store, onSignOut: widget.onSignOut),
       ]),
       bottomNavigationBar: NavigationBar(
         height: 72,
@@ -231,7 +240,7 @@ class _MarketsScreenState extends State<MarketsScreen> {
     ('US', 'NASDAQ', '15.628,24', '+0,38%'),
     ('BR', 'Dólar', 'R\$ 5,23', '+0,16%'),
     ('EU', 'Euro', 'R\$ 5,71', '+0,12%'),
-    ('%', 'CDI', '10,65%', '0,00%'),
+    ('CDI', 'CDI', '10,65%', '0,00%'),
   ];
   static const cambio = <(String, String, String, String)>[
     ('US', 'Dólar', 'R\$ 5,23', '+0,16%'),
@@ -344,6 +353,19 @@ class _MarketFlag extends StatelessWidget {
   final String code;
   @override
   Widget build(BuildContext context) {
+    if (code == 'CDI') {
+      return Semantics(
+        label: 'CDI, taxa de juros',
+        child: Container(
+          key: const ValueKey('market-icon-cdi'),
+          decoration: const BoxDecoration(
+            color: Color(0xFFE2F5ED),
+            shape: BoxShape.circle),
+          child: const Icon(Icons.percent_rounded,
+            color: fsTextGreen, size: 18),
+        ),
+      );
+    }
     if (code == 'BR' || code == 'US' || code == 'EU') {
       return CustomPaint(size: const Size(27,27),
         painter: _CircularFlagPainter(code));
@@ -509,8 +531,9 @@ class PortfolioScreen extends StatelessWidget {
 }
 
 class MoreScreen extends StatelessWidget {
-  const MoreScreen({super.key, required this.store});
+  const MoreScreen({super.key, required this.store, required this.onSignOut});
   final FinSightStore store;
+  final VoidCallback onSignOut;
   @override
   Widget build(BuildContext context) => SafeArea(child: ListView(
     key: const ValueKey('more-screen'),
@@ -536,8 +559,19 @@ class MoreScreen extends StatelessWidget {
         )),
         const SizedBox(height: 10),
       ],
+      const SizedBox(height: 14),
+      OutlinedButton.icon(
+        key: const ValueKey('demo-sign-out'),
+        onPressed: onSignOut,
+        icon: const Icon(Icons.logout_rounded, size: 20),
+        label: const Text('Sair da demonstração'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: fsInk,
+          minimumSize: const Size.fromHeight(48),
+          side: const BorderSide(color: fsBorder)),
+      ),
       const SizedBox(height: 16),
-      const Text('FinSight · Visual V5.2 · modo demonstrativo',
+      const Text('FinSight · Visual V5.6 · modo demonstrativo',
         style: TextStyle(color: fsMuted, fontSize: 12)),
     ],
   ));
