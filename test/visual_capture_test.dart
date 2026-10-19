@@ -70,7 +70,8 @@ void main() {
 
   testWidgets('Modal de compra em 390x844', (tester) async {
     await mount(tester);
-    await tester.ensureVisible(find.text('PETR4').first);
+    await tester.scrollUntilVisible(find.text('PETR4'),140,
+      scrollable:find.byType(Scrollable).first);
     await tester.tap(find.text('PETR4').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Comprar'));
@@ -80,7 +81,8 @@ void main() {
 
   testWidgets('Modal venda invalida em 390x844', (tester) async {
     await mount(tester);
-    await tester.ensureVisible(find.text('PETR4').first);
+    await tester.scrollUntilVisible(find.text('PETR4'),140,
+      scrollable:find.byType(Scrollable).first);
     await tester.tap(find.text('PETR4').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Vender'));
@@ -90,7 +92,8 @@ void main() {
 
   testWidgets('Modal responsivo em 320x640', (tester) async {
     await mount(tester,size:const Size(320,640));
-    await tester.ensureVisible(find.text('PETR4').first);
+    await tester.scrollUntilVisible(find.text('PETR4'),140,
+      scrollable:find.byType(Scrollable).first);
     await tester.tap(find.text('PETR4').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Comprar'));
