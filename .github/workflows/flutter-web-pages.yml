@@ -1,0 +1,62 @@
+name: FinSight Web Preview (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: finsight-pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build Flutter Web e publicar preview
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Flutter Stable
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar suporte Web
+        run: flutter create --platforms=web --project-name finsight_mobile .
+
+      - name: Instalar dependencias
+        run: flutter pub get
+
+      - name: Gerar preview navegavel para GitHub Pages
+        run: flutter build web --release --base-href /FinSight-Mobile/
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Publicar artefato web
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Resumo
+        run: |
+          echo '## FinSight Flutter Web' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Preview: ${{ steps.deployment.outputs.page_url }}' >> "$GITHUB_STEP_SUMMARY"
+          echo 'SQLite local funciona no Android/iOS; a prévia Web usa modo demonstração.' >> "$GITHUB_STEP_SUMMARY"
