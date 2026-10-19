@@ -1053,7 +1053,7 @@ class _OperationSheetState extends State<OperationSheet> {
     // O frame aprovado e de 390 x 720 dp. Em telas menores,
     // preserva o rodape e deixa apenas o formulario rolavel.
     final maxHeight=widget.viewportHeight-keyboard-12;
-    final height=maxHeight>=720 ? 720.0 : maxHeight.clamp(240.0,720.0);
+    final height=maxHeight>=720 ? 720.0 : maxHeight.clamp(240.0,720.0).toDouble();
     return SizedBox(
       height:height,
       child:Column(children:[
