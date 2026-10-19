@@ -4,6 +4,53 @@ import 'package:finsight_mobile/finsight_app.dart';
 import 'package:finsight_mobile/models/finance_models.dart';
 
 void main() {
+  testWidgets('Login exibido na inicializacao com acesso demo', (tester) async {
+    await tester.pumpWidget(const FinSightApp());
+    expect(find.text('Bem-vindo de volta'), findsOneWidget);
+    expect(find.byKey(const ValueKey('login-email')), findsOneWidget);
+    expect(find.byKey(const ValueKey('login-password')), findsOneWidget);
+    expect(find.byKey(const ValueKey('enter-demo')), findsOneWidget);
+    final signIn = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('login-submit')));
+    expect(signIn.onPressed, isNull,
+      reason: 'Login de email indisponivel sem backend de autenticacao');
+    expect(find.byKey(const ValueKey('dashboard-screen')), findsNothing);
+  });
+
+  testWidgets('Demo permite sair e voltar ao login', (tester) async {
+    await tester.pumpWidget(const FinSightApp());
+    await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
+    await tester.tap(find.byKey(const ValueKey('enter-demo')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('dashboard-screen')), findsOneWidget);
+    await tester.tap(find.text('Mais').last);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('demo-sign-out')),
+      130, scrollable:find.byType(Scrollable).first);
+    await tester.tap(find.byKey(const ValueKey('demo-sign-out')));
+    await tester.pumpAndSettle();
+    expect(find.text('Bem-vindo de volta'), findsOneWidget);
+    expect(find.byKey(const ValueKey('dashboard-screen')), findsNothing);
+  });
+
+  testWidgets('CDI possui icone sem placeholder de porcentagem', (tester) async {
+    await tester.pumpWidget(const FinSightApp());
+    await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
+    await tester.tap(find.byKey(const ValueKey('enter-demo')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mercado').last);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('market-icon-cdi')),
+      100, scrollable:find.byType(Scrollable).first);
+    expect(find.text('CDI'), findsOneWidget);
+    expect(find.byKey(const ValueKey('market-icon-cdi')), findsOneWidget);
+    final icon = tester.widget<Icon>(
+      find.descendant(
+        of: find.byKey(const ValueKey('market-icon-cdi')),
+        matching: find.byType(Icon)));
+    expect(icon.icon, Icons.percent_rounded);
+  });
+
   test('Operacoes alteram o saldo demonstrativo', () {
     final store=FinSightStore();
     expect(store.quantity('PETR4'),0);
@@ -19,6 +66,9 @@ void main() {
 
   testWidgets('Dashboard exibe indicadores e os quatro destaques', (tester) async {
     await tester.pumpWidget(const FinSightApp());
+    await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
+    await tester.tap(find.byKey(const ValueKey('enter-demo')));
+    await tester.pumpAndSettle();
     expect(find.text('Olá, Investidor'), findsOneWidget);
     expect(find.text('Ibovespa'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('PETR4'), 140,
@@ -30,6 +80,9 @@ void main() {
 
   testWidgets('Navegacao abre mercado e carteira', (tester) async {
     await tester.pumpWidget(const FinSightApp());
+    await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
+    await tester.tap(find.byKey(const ValueKey('enter-demo')));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Mercado').last);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('markets-screen')),findsOneWidget);
@@ -40,6 +93,9 @@ void main() {
 
   testWidgets('Busca filtra ativos por ticker', (tester) async {
     await tester.pumpWidget(const FinSightApp());
+    await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
+    await tester.tap(find.byKey(const ValueKey('enter-demo')));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Buscar').last);
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('asset-search')), 'MGLU3');
@@ -50,6 +106,9 @@ void main() {
 
   testWidgets('Detalhe permite abrir operacao', (tester) async {
     await tester.pumpWidget(const FinSightApp());
+    await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
+    await tester.tap(find.byKey(const ValueKey('enter-demo')));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('PETR4'), 140,
       scrollable:find.byType(Scrollable).first);
     await tester.tap(find.text('PETR4').first);
@@ -63,6 +122,9 @@ void main() {
 
   testWidgets('O CTA venda segue vermelho e saldo e validado', (tester) async {
     await tester.pumpWidget(const FinSightApp());
+    await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
+    await tester.tap(find.byKey(const ValueKey('enter-demo')));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('PETR4'), 140,
       scrollable:find.byType(Scrollable).first);
     await tester.tap(find.text('PETR4').first);
@@ -99,6 +161,9 @@ void main() {
 
   testWidgets('Modal permite selecionar data da operacao', (tester) async {
     await tester.pumpWidget(const FinSightApp());
+    await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
+    await tester.tap(find.byKey(const ValueKey('enter-demo')));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('PETR4'), 140,
       scrollable:find.byType(Scrollable).first);
     await tester.tap(find.text('PETR4').first);
@@ -117,6 +182,9 @@ void main() {
 
   testWidgets('Filtro de destaques altera lista', (tester) async {
     await tester.pumpWidget(const FinSightApp());
+    await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
+    await tester.tap(find.byKey(const ValueKey('enter-demo')));
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('highlight-Maiores Altas')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('highlight-Maiores Baixas')));
     await tester.pumpAndSettle();
@@ -125,6 +193,9 @@ void main() {
 
   testWidgets('Modal V5 utiliza cabecalho e labels reais', (tester) async {
     await tester.pumpWidget(const FinSightApp());
+    await tester.ensureVisible(find.byKey(const ValueKey('enter-demo')));
+    await tester.tap(find.byKey(const ValueKey('enter-demo')));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('PETR4'), 140,
       scrollable:find.byType(Scrollable).first);
     await tester.tap(find.text('PETR4').first);
