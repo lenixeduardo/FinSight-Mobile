@@ -225,17 +225,17 @@ class _MarketsScreenState extends State<MarketsScreen> {
   String assetFilter = 'Ações';
 
   static const indices = <(String, String, String, String)>[
-    ('🇧🇷', 'Ibovespa', '128.532,17', '+1,42%'),
-    ('🇧🇷', 'IFIX', '3.214,08', '+0,31%'),
-    ('🇺🇸', 'S&P 500', '4.982,31', '+0,62%'),
-    ('🇺🇸', 'NASDAQ', '15.628,24', '+0,38%'),
-    ('🇧🇷', 'Dólar', 'R\$ 5,23', '+0,16%'),
-    ('🇪🇺', 'Euro', 'R\$ 5,71', '+0,12%'),
+    ('BR', 'Ibovespa', '128.532,17', '+1,42%'),
+    ('BR', 'IFIX', '3.214,08', '+0,31%'),
+    ('US', 'S&P 500', '4.982,31', '+0,62%'),
+    ('US', 'NASDAQ', '15.628,24', '+0,38%'),
+    ('BR', 'Dólar', 'R\$ 5,23', '+0,16%'),
+    ('EU', 'Euro', 'R\$ 5,71', '+0,12%'),
     ('%', 'CDI', '10,65%', '0,00%'),
   ];
   static const cambio = <(String, String, String, String)>[
-    ('🇺🇸', 'Dólar', 'R\$ 5,23', '+0,16%'),
-    ('🇪🇺', 'Euro', 'R\$ 5,71', '+0,12%'),
+    ('US', 'Dólar', 'R\$ 5,23', '+0,16%'),
+    ('EU', 'Euro', 'R\$ 5,71', '+0,12%'),
   ];
   static const commodities = <(String, String, String, String)>[
     ('AU', 'Ouro', 'US\$ 2.371,00', '+0,36%'),
@@ -323,8 +323,7 @@ class _MarketIndexRow extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 2),
     child: Row(children: [
       SizedBox(width: 31, height: 31,
-        child: Center(child: Text(index.$1,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)))),
+        child: _MarketFlag(code: index.$1)),
       const SizedBox(width: 10),
       Expanded(child: Text(index.$2, maxLines: 1,
         overflow: TextOverflow.ellipsis, style: const TextStyle(
@@ -337,6 +336,70 @@ class _MarketIndexRow extends StatelessWidget {
           fontSize: 12, color: fsGreen, fontWeight: FontWeight.w700))),
     ]),
   );
+}
+
+
+class _MarketFlag extends StatelessWidget {
+  const _MarketFlag({required this.code});
+  final String code;
+  @override
+  Widget build(BuildContext context) {
+    if (code == 'BR' || code == 'US' || code == 'EU') {
+      return CustomPaint(size: const Size(27,27),
+        painter: _CircularFlagPainter(code));
+    }
+    return CircleAvatar(
+      backgroundColor: fsCanvas,
+      child: Text(code, style: const TextStyle(fontSize: 10,
+        color: fsInk, fontWeight: FontWeight.w700)));
+  }
+}
+
+class _CircularFlagPainter extends CustomPainter {
+  const _CircularFlagPainter(this.code);
+  final String code;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center=Offset(size.width/2,size.height/2);
+    final radius=size.shortestSide/2;
+    final circular=Path()..addOval(Rect.fromCircle(center:center,radius:radius));
+    canvas.save();
+    canvas.clipPath(circular);
+    if(code=='BR') {
+      canvas.drawColor(const Color(0xFF15944C),BlendMode.srcOver);
+      final diamond=Path()..moveTo(center.dx,radius*.35)
+        ..lineTo(size.width-radius*.2,center.dy)
+        ..lineTo(center.dx,size.height-radius*.35)
+        ..lineTo(radius*.2,center.dy)..close();
+      canvas.drawPath(diamond,Paint()..color=const Color(0xFFF4D03F));
+      canvas.drawCircle(center,radius*.35,Paint()..color=const Color(0xFF2350A3));
+    } else if(code=='US') {
+      canvas.drawColor(Colors.white,BlendMode.srcOver);
+      final stripe=size.height/11;
+      for(var row=0;row<11;row+=2) {
+        canvas.drawRect(Rect.fromLTWH(0,row*stripe,size.width,stripe),
+          Paint()..color=const Color(0xFFCF3145));
+      }
+      canvas.drawRect(Rect.fromLTWH(0,0,size.width*.53,size.height*.57),
+        Paint()..color=const Color(0xFF244482));
+      for(final pt in [const Offset(4,4),const Offset(10,4),
+          const Offset(4,10),const Offset(10,10)]) {
+        canvas.drawCircle(pt,1,Paint()..color=Colors.white);
+      }
+    } else {
+      canvas.drawColor(const Color(0xFF2446A2),BlendMode.srcOver);
+      final star=Paint()..color=const Color(0xFFFACC15);
+      for(final point in [const Offset(.5,.18),const Offset(.7,.27),
+        const Offset(.8,.5),const Offset(.7,.73),const Offset(.5,.82),
+        const Offset(.3,.73),const Offset(.2,.5),const Offset(.3,.27)]) {
+        canvas.drawCircle(Offset(size.width*point.dx,size.height*point.dy),
+          1.25,star);
+      }
+    }
+    canvas.restore();
+  }
+  @override
+  bool shouldRepaint(covariant _CircularFlagPainter old) => old.code != code;
 }
 
 class SearchScreen extends StatefulWidget {
