@@ -148,6 +148,7 @@ void main() {
     await tester.pumpWidget(RepaintBoundary(
       key:boundaryKey,
       child:MaterialApp(
+        debugShowCheckedModeBanner:false,
         theme:finSightTheme(),
         home:FSAssetDetails(store:store,asset:fsAssets.first),
       ),
@@ -174,6 +175,7 @@ void main() {
       isBuy:true,date:DateTime(2024,6,10)));
     await tester.pumpWidget(RepaintBoundary(key:boundaryKey,
       child:MaterialApp(
+        debugShowCheckedModeBanner:false,
         theme:finSightTheme(),
         home:FSAssetDetails(store:store,asset:fsAssets.first),
       ),
