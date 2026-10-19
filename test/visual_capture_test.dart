@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -7,6 +6,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:finsight_mobile/finsight_app.dart';
+import 'package:finsight_mobile/models/finance_models.dart';
+import 'package:finsight_mobile/ui/finsight_components.dart';
 
 // Capturas geradas pelo renderizador Flutter em testes de widget.
 // Nao equivalem a screenshots de dispositivo Android/iOS.
@@ -113,10 +114,17 @@ void main() {
   });
 
   testWidgets('Modal responsivo em 320x640', (tester) async {
-    await mount(tester,size:const Size(320,640));
-    await tester.scrollUntilVisible(find.text('PETR4'),140,
-      scrollable:find.byType(Scrollable).first);
-    await tester.tap(find.text('PETR4').first);
+    await tester.binding.setSurfaceSize(const Size(320,640));
+    addTearDown(() async { await tester.binding.setSurfaceSize(null); });
+    final store=FinSightStore();
+    addTearDown(store.dispose);
+    await tester.pumpWidget(RepaintBoundary(
+      key:boundaryKey,
+      child:MaterialApp(
+        theme:finSightTheme(),
+        home:FSAssetDetails(store:store,asset:fsAssets.first),
+      ),
+    ));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Comprar'));
     await tester.pumpAndSettle();
