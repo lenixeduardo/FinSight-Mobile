@@ -208,7 +208,7 @@ class _OnboardingPage extends StatelessWidget {
 class _OnboardingIllustration extends StatelessWidget {
   const _OnboardingIllustration({required this.type});
   final int type;
-  static const line=[32.0,36,35,43,40,49,51,45,58,54,64,68,62,75,81,78];
+  static const List<double> line=[32.0,36.0,35.0,43.0,40.0,49.0,51.0,45.0,58.0,54.0,64.0,68.0,62.0,75.0,81.0,78.0];
 
   @override
   Widget build(BuildContext context)=>Stack(children:[
@@ -237,7 +237,7 @@ class _OnboardingIllustration extends StatelessWidget {
               type==1?'Comparativo de ativos':'Mercado brasileiro',
             style:const TextStyle(fontSize:10,color:fsMuted)),
           const SizedBox(height:7),
-          Text(type==1?'PETR4 / VALE3':'R$ 128.532,17',
+          Text(type==1?'PETR4 / VALE3':'R\$ 128.532,17',
             style:const TextStyle(color:fsInk,fontSize:17,
               fontWeight:FontWeight.w800)),
           const SizedBox(height:5),
@@ -249,7 +249,7 @@ class _OnboardingIllustration extends StatelessWidget {
             child:CustomPaint(painter:_LinePainter(line))),
           const SizedBox(height:16),
           Row(crossAxisAlignment:CrossAxisAlignment.end,children:[
-            for(final h in [19.0,29,23,37,27,41])
+            for(final h in <double>[19.0,29.0,23.0,37.0,27.0,41.0])
               Expanded(child:Padding(
                 padding:const EdgeInsets.only(right:6),
                 child:Container(height:h,decoration:BoxDecoration(
@@ -258,7 +258,7 @@ class _OnboardingIllustration extends StatelessWidget {
           ]),
         ]),
       )),
-    )),
+    ),
     Positioned(left:3,bottom:17,child:Transform.rotate(
       angle:.06,child:Container(
         width:133,height:87,
@@ -272,7 +272,7 @@ class _OnboardingIllustration extends StatelessWidget {
           Text(type==2?'Carteira':'Desempenho',
             style:const TextStyle(color:fsMuted,fontSize:10)),
           const SizedBox(height:5),
-          Text(type==2?'R$ 3.750,00':'+2,14%',
+          Text(type==2?'R\$ 3.750,00':'+2,14%',
             style:const TextStyle(color:fsTextGreen,fontSize:16,
               fontWeight:FontWeight.w800)),
           const SizedBox(height:4),
@@ -281,7 +281,7 @@ class _OnboardingIllustration extends StatelessWidget {
             color:const Color(0xFFBCEEDC))),
         ]),
       )),
-    )),
+    ),
   ]);
 }
 
