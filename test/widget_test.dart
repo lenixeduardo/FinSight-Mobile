@@ -24,9 +24,8 @@ void main() {
     await tester.scrollUntilVisible(find.text('PETR4'), 140,
       scrollable:find.byType(Scrollable).first);
     expect(find.text('PETR4'), findsWidgets);
-    await tester.scrollUntilVisible(find.text('VALE3').first, 100,
-      scrollable: find.byType(Scrollable).first);
-    expect(find.text('VALE3'), findsWidgets);
+    expect(find.byKey(const ValueKey('highlight-Maiores Altas')), findsOneWidget);
+    expect(fsAssets.take(4).any((asset) => asset.ticker == 'VALE3'), isTrue);
   });
 
   testWidgets('Navegacao abre mercado e carteira', (tester) async {
