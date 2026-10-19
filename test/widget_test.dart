@@ -56,7 +56,7 @@ void main() {
     expect(find.text('Comprar'),findsOneWidget);
     await tester.tap(find.text('Comprar'));
     await tester.pumpAndSettle();
-    expect(find.text('Adicionar operação'),findsOneWidget);
+    expect(find.text('Nova operação'),findsOneWidget);
     expect(find.byKey(const ValueKey('operation-submit')),findsOneWidget);
   });
 
@@ -112,6 +112,30 @@ void main() {
     await tester.tap(dateField);
     await tester.pumpAndSettle();
     expect(find.byType(DatePickerDialog),findsOneWidget);
+  });
+
+  testWidgets('Filtro de destaques altera lista', (tester) async {
+    await tester.pumpWidget(const FinSightApp());
+    expect(find.byKey(const ValueKey('highlight-Maiores Altas')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('highlight-Maiores Baixas')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('asset-row-VALE3')), findsWidgets);
+  });
+
+  testWidgets('Modal V5 utiliza cabecalho e labels reais', (tester) async {
+    await tester.pumpWidget(const FinSightApp());
+    await tester.scrollUntilVisible(find.text('PETR4'), 140,
+      scrollable:find.byType(Scrollable).first);
+    await tester.tap(find.text('PETR4').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Comprar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nova operação'), findsOneWidget);
+    expect(find.text('Tipo de operação'), findsOneWidget);
+    expect(find.text('Preço unitário'), findsOneWidget);
+    expect(find.text('Total estimado'), findsOneWidget);
+    expect(find.byKey(const ValueKey('operation-buy-tab')), findsOneWidget);
+    expect(find.byKey(const ValueKey('operation-sell-tab')), findsOneWidget);
   });
 
 }
