@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'finsight_components.dart';
+import 'launch_screens.dart';
 
 /// Tela de entrada V5.6.
 /// O UI Kit ainda nao possui um provedor de identidade configurado.
@@ -26,12 +27,7 @@ class _FinSightLoginScreenState extends State<FinSightLoginScreen> {
             padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Container(
-                  width: 40, height: 40,
-                  decoration: BoxDecoration(
-                    color: fsGreen, borderRadius: BorderRadius.circular(11)),
-                  child: const Icon(Icons.show_chart_rounded, color: Colors.white, size: 27),
-                ),
+                const FinSightBrandMark(size: 42),
                 const SizedBox(width: 10),
                 const Text('FinSight', style: TextStyle(
                   fontSize: 26, fontWeight: FontWeight.w800, color: fsInk)),
