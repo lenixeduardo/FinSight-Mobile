@@ -887,9 +887,9 @@ class _OperationSheetState extends State<OperationSheet> {
     final accent = isBuy ? fsGreen : fsRed;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * .9),
+      child: SizedBox(
+        height: (MediaQuery.sizeOf(context).height -
+          MediaQuery.viewInsetsOf(context).bottom) * .9,
         child: SingleChildScrollView(child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
