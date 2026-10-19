@@ -45,8 +45,12 @@ void main() {
   });
 
   Future<void> mount(WidgetTester tester, {Size size = const Size(390,844)}) async {
-    await tester.binding.setSurfaceSize(size);
-    addTearDown(() async { await tester.binding.setSurfaceSize(null); });
+    tester.view.devicePixelRatio=1;
+    tester.view.physicalSize=size;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
     await tester.pumpWidget(
       RepaintBoundary(key:boundaryKey, child:const FinSightApp()));
     await tester.pumpAndSettle();
@@ -112,6 +116,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Comprar'));
     await tester.pumpAndSettle();
+    expect(tester.getSize(find.byType(OperationSheet)).height,
+      closeTo(720, 2), reason:'Modal V5 deve medir 720 dp');
+    expect(tester.getBottomRight(find.byKey(const ValueKey('operation-submit'))).dy,
+      lessThanOrEqualTo(844),
+      reason:'CTA deve ficar visivel sem rolar o formulario');
+    expect(find.text('Total estimado'), findsOneWidget);
     await save(tester,'390_modal_compra');
   });
 
@@ -127,13 +137,18 @@ void main() {
   });
 
   testWidgets('Modal responsivo em 320x640', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(320,640));
-    addTearDown(() async { await tester.binding.setSurfaceSize(null); });
+    tester.view.devicePixelRatio=1;
+    tester.view.physicalSize=const Size(320,640);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
     final store=FinSightStore();
     addTearDown(store.dispose);
     await tester.pumpWidget(RepaintBoundary(
       key:boundaryKey,
       child:MaterialApp(
+        debugShowCheckedModeBanner:false,
         theme:finSightTheme(),
         home:FSAssetDetails(store:store,asset:fsAssets.first),
       ),
@@ -141,6 +156,38 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Comprar'));
     await tester.pumpAndSettle();
+    expect(tester.getBottomRight(find.byKey(const ValueKey('operation-submit'))).dy,
+      lessThanOrEqualTo(640),
+      reason:'Em 320x640 o CTA deve permanecer fixo e acessivel');
     await save(tester,'320_modal_compra');
   });
+  testWidgets('Modal venda com saldo em 390x844', (tester) async {
+    tester.view.devicePixelRatio=1;
+    tester.view.physicalSize=const Size(390,844);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final store=FinSightStore();
+    addTearDown(store.dispose);
+    store.register(FSOperation(
+      asset:fsAssets.first,quantity:100,price:37.50,
+      isBuy:true,date:DateTime(2024,6,10)));
+    await tester.pumpWidget(RepaintBoundary(key:boundaryKey,
+      child:MaterialApp(
+        debugShowCheckedModeBanner:false,
+        theme:finSightTheme(),
+        home:FSAssetDetails(store:store,asset:fsAssets.first),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Vender'));
+    await tester.pumpAndSettle();
+    expect(find.text('Registrar venda'),findsOneWidget);
+    expect(find.text('R\$ 1.875,00'),findsOneWidget);
+    expect(tester.getBottomRight(find.byKey(const ValueKey('operation-submit'))).dy,
+      lessThanOrEqualTo(844));
+    await save(tester,'390_modal_venda_com_saldo');
+  });
+
 }
