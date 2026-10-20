@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../data/market_api.dart';
 
 class FSAsset {
   const FSAsset(this.ticker, this.name, this.price, this.variation, this.category,
@@ -70,13 +71,50 @@ class FSOperation {
 }
 
 class FinSightStore extends ChangeNotifier {
+  final FinSightMarketApi _marketApi = const FinSightMarketApi();
+  late List<FSAsset> assets = fsAssets.map((a) =>
+    FinSightMarketApi.symbols.contains(a.ticker)
+      ? FSAsset(a.ticker, a.name, 0, 0, a.category, const [])
+      : a).toList();
+  DateTime? marketUpdatedAt;
+  String? marketError;
+  bool marketLoading = false;
+
+  Future<void> refreshMarket() async {
+    if (marketLoading) return;
+    marketLoading = true;
+    marketError = null;
+    notifyListeners();
+    try {
+      final quotes = await _marketApi.fetchQuotes();
+      assets = assets.map((a) {
+        final quote = quotes[a.ticker];
+        if (quote == null) return a;
+        return FSAsset(a.ticker, a.name, quote.price, quote.changePercent,
+          a.category, a.history, volume: a.volume,
+          marketCap: a.marketCap, pe: a.pe);
+      }).toList();
+      marketUpdatedAt = DateTime.now();
+      if (FinSightMarketApi.symbols.any((ticker) =>
+          !quotes.containsKey(ticker))) {
+        marketError = 'Algumas cotações não estão disponíveis';
+      }
+    } catch (e) {
+      marketError = 'Não foi possível atualizar as cotações';
+      debugPrint('FinSight market: $e');
+    } finally {
+      marketLoading = false;
+      notifyListeners();
+    }
+  }
+
   final Set<String> _favorites = {'PETR4', 'VALE3'};
   final List<FSOperation> _operations = [];
   bool get hasOperations => _operations.isNotEmpty;
   List<FSOperation> get operations => List.unmodifiable(_operations);
   bool isFavorite(String ticker) => _favorites.contains(ticker);
   List<FSAsset> get favorites =>
-      fsAssets.where((asset) => _favorites.contains(asset.ticker)).toList();
+      assets.where((asset) => _favorites.contains(asset.ticker)).toList();
   void toggleFavorite(String ticker) {
     if (!_favorites.add(ticker)) _favorites.remove(ticker);
     notifyListeners();
@@ -101,7 +139,7 @@ class FinSightStore extends ChangeNotifier {
   }
 
   double get portfolioValue {
-    return fsAssets.fold<double>(
+    return assets.fold<double>(
       0, (total, asset) => total + quantity(asset.ticker) * asset.price);
   }
 
