@@ -312,35 +312,6 @@ class _MarketsScreenState extends State<MarketsScreen> {
   ));
 }
 
-class _MarketFlag extends StatelessWidget {
-  const _MarketFlag({required this.code});
-  final String code;
-  @override
-  Widget build(BuildContext context) {
-    if (code == 'CDI') {
-      return Semantics(
-        label: 'CDI, taxa de juros',
-        child: Container(
-          key: const ValueKey('market-icon-cdi'),
-          decoration: const BoxDecoration(
-            color: Color(0xFFE2F5ED),
-            shape: BoxShape.circle),
-          child: const Icon(Icons.percent_rounded,
-            color: fsTextGreen, size: 18),
-        ),
-      );
-    }
-    if (code == 'BR' || code == 'US' || code == 'EU') {
-      return CustomPaint(size: const Size(27,27),
-        painter: _CircularFlagPainter(code));
-    }
-    return CircleAvatar(
-      backgroundColor: fsCanvas,
-      child: Text(code, style: const TextStyle(fontSize: 10,
-        color: fsInk, fontWeight: FontWeight.w700)));
-  }
-}
-
 class _CircularFlagPainter extends CustomPainter {
   const _CircularFlagPainter(this.code);
   final String code;
