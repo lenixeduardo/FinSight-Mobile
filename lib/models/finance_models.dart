@@ -15,7 +15,7 @@ class FSAsset {
   final String pe;
 }
 
-const fsAssets = <FSAsset>[
+final fsAssets = <FSAsset>[
   FSAsset('PETR4', 'Petrobras', 37.42, 2.14, 'Ações',
     [31, 33, 32, 36, 35, 37, 36, 38, 37, 40, 38, 41],
     volume: '28,4M', marketCap: 'R\$ 482B', pe: '5,8'),
@@ -94,6 +94,9 @@ class FinSightStore extends ChangeNotifier {
           a.category, a.history, volume: a.volume,
           marketCap: a.marketCap, pe: a.pe);
       }).toList();
+      for (var i = 0; i < fsAssets.length; i++) {
+        fsAssets[i] = assets[i];
+      }
       marketUpdatedAt = DateTime.now();
       if (FinSightMarketApi.symbols.any((ticker) =>
           !quotes.containsKey(ticker))) {
