@@ -32,6 +32,7 @@ class _FinSightAppState extends State<FinSightApp> {
   void initState() {
     super.initState();
     stage = widget.initialStage;
+    store.refreshMarket();
     if (stage == FinSightEntryStage.splash) {
       splashTimer = Timer(
         const Duration(milliseconds: 1450), _finishSplash);
@@ -41,7 +42,7 @@ class _FinSightAppState extends State<FinSightApp> {
   void _clearSession() {
     if (!mounted) return;
     store.dispose();
-    store = FinSightStore();
+    store = FinSightStore()..refreshMarket();
     setState(() => stage = FinSightEntryStage.login);
   }
 
