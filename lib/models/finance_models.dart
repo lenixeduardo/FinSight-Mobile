@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/market_api.dart';
 
 class FSAsset {
@@ -73,10 +74,9 @@ class FSOperation {
 class FinSightStore extends ChangeNotifier {
   final FinSightMarketApi _marketApi = const FinSightMarketApi();
   late List<FSAsset> assets = fsAssets.map((a) =>
-    FinSightMarketApi.symbols.contains(a.ticker)
-      ? FSAsset(a.ticker, a.name, 0, 0, a.category, const [])
-      : a).toList();
+      FSAsset(a.ticker, a.name, 0, 0, a.category, const [])).toList();
   DateTime? marketUpdatedAt;
+  bool get hasMarketData => marketUpdatedAt != null;
   String? marketError;
   bool marketLoading = false;
 
@@ -111,7 +111,14 @@ class FinSightStore extends ChangeNotifier {
     }
   }
 
-  final Set<String> _favorites = {'PETR4', 'VALE3'};
+  final Set<String> _favorites = {};
+  Future<void> loadFavorites() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _favorites..clear()..addAll(prefs.getStringList('finsight_favorites_v1') ?? const []);
+      notifyListeners();
+    } catch (e) { debugPrint('FinSight favorites: $e'); }
+  }
   final List<FSOperation> _operations = [];
   bool get hasOperations => _operations.isNotEmpty;
   List<FSOperation> get operations => List.unmodifiable(_operations);
@@ -121,6 +128,13 @@ class FinSightStore extends ChangeNotifier {
   void toggleFavorite(String ticker) {
     if (!_favorites.add(ticker)) _favorites.remove(ticker);
     notifyListeners();
+    _saveFavorites();
+  }
+  Future<void> _saveFavorites() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('finsight_favorites_v1', _favorites.toList());
+    } catch (e) { debugPrint('FinSight favorites save: $e'); }
   }
 
   void register(FSOperation operation) {
