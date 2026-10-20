@@ -91,7 +91,7 @@ class FinSightStore extends ChangeNotifier {
         final quote = quotes[a.ticker];
         if (quote == null) return a;
         return FSAsset(a.ticker, a.name, quote.price, quote.changePercent,
-          a.category, a.history, volume: a.volume,
+          a.category, quote.history, volume: a.volume,
           marketCap: a.marketCap, pe: a.pe);
       }).toList();
       for (var i = 0; i < fsAssets.length; i++) {
