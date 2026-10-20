@@ -4,12 +4,14 @@ import 'package:http/http.dart' as http;
 
 /// Consulta cotações públicas da brapi. Não armazena credenciais no cliente.
 class FinSightMarketApi {
-  const FinSightMarketApi();
+  const FinSightMarketApi({this.client});
+  final http.Client? client;
   static const symbols = ['PETR4', 'VALE3', 'ITUB4', 'MGLU3'];
 
   Future<Map<String, MarketQuote>> fetchQuotes() async {
     final uri = Uri.base.resolve('/api/quotes');
-    final response = await http.get(uri).timeout(const Duration(seconds: 15));
+    final response = await (client?.get(uri) ?? http.get(uri))
+        .timeout(const Duration(seconds: 15));
     if (response.statusCode != 200) {
       throw Exception('Cotação indisponível (HTTP ${response.statusCode})');
     }
