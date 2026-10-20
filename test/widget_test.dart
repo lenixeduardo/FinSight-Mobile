@@ -50,7 +50,7 @@ const quoteRows = [
 
 FinSightMarketApi apiFixture({int status = 200, Object? payload}) {
   return FinSightMarketApi(client: MockClient((request) async {
-    expect(request.path, '/api/quotes');
+    expect(request.url.path, '/api/quotes');
     expect(request.method, 'GET');
     return http.Response(
       jsonEncode(payload ?? {'results': quoteRows}),
