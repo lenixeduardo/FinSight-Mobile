@@ -586,7 +586,6 @@ class _AssetGraph extends StatefulWidget {
   State<_AssetGraph> createState()=>_AssetGraphState();
 }
 class _AssetGraphState extends State<_AssetGraph> {
-  String period='1A';
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(24), children: [
