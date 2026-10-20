@@ -29,32 +29,8 @@ class FSBrandImage extends StatelessWidget {
         child: Center(child: Text(ticker.substring(0, ticker.length > 2 ? 2 : ticker.length),
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700))));
     }
-    if (ticker == 'ITUB4') {
-      return SizedBox(
-        width: size,
-        height: size,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: const Color(0xFFFF6200),
-            borderRadius: BorderRadius.circular(size * .24),
-          ),
-          child: Center(
-            child: Text(
-              'itaú',
-              maxLines: 1,
-              textAlign: TextAlign.center,
-              textScaler: TextScaler.noScaling,
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                fontSize: size * .37,
-                letterSpacing: -size * .025,
-                height: 1,
-              ),
-            ),
-          ),
-        ),
-      );
+    if (ticker == 'VALE3' || ticker == 'ITUB4' || ticker == 'MGLU3') {
+      return _UpdatedAssetIcon(ticker: ticker, size: size);
     }
     return SizedBox(
       width: size, height: size,
@@ -63,4 +39,73 @@ class FSBrandImage extends StatelessWidget {
         semanticLabel: 'Logotipo $ticker'),
     );
   }
+}
+
+class _UpdatedAssetIcon extends StatelessWidget {
+  const _UpdatedAssetIcon({required this.ticker, required this.size});
+  final String ticker;
+  final double size;
+  @override
+  Widget build(BuildContext context) {
+    final vale = ticker == 'VALE3';
+    final itau = ticker == 'ITUB4';
+    final colors = vale
+      ? const [Color(0xFF05AFA0), Color(0xFF004044)]
+      : itau
+      ? const [Color(0xFF0878F8), Color(0xFF081A7D)]
+      : const [Color(0xFF0DC8F4), Color(0xFF0644E2)];
+    return Container(
+      width: size, height: size,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(size * .23),
+        gradient: LinearGradient(begin: Alignment.topLeft,
+          end: Alignment.bottomRight, colors: colors),
+      ),
+      child: vale
+        ? const CustomPaint(painter: _ValeIconPainter())
+        : Center(child: itau
+          ? FittedBox(fit: BoxFit.scaleDown,
+              child: Text('Itaú', textScaler: TextScaler.noScaling,
+                style: TextStyle(fontWeight: FontWeight.w900,
+                  fontSize: size * .42, color: const Color(0xFFFFD51B))))
+          : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Text('magalu', textScaler: TextScaler.noScaling,
+                style: TextStyle(fontWeight: FontWeight.w900,
+                  fontSize: size * .245, color: Colors.white)),
+              SizedBox(height: size * .06),
+              Container(height: size * .045, width: size * .72,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(size),
+                  gradient: const LinearGradient(colors: [
+                    Color(0xFFFFC400), Color(0xFFFF3298),
+                    Color(0xFF7843FB), Color(0xFF09CFF5),
+                    Color(0xFF00ED8D)])))
+            ])),
+    );
+  }
+}
+
+class _ValeIconPainter extends CustomPainter {
+  const _ValeIconPainter();
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    final gold = Path()
+      ..moveTo(w*.45,h*.49)
+      ..cubicTo(w*.62,h*.52,w*.69,h*.31,w*.87,h*.38)
+      ..cubicTo(w*.76,h*.50,w*.66,h*.65,w*.56,h*.64)
+      ..close();
+    canvas.drawPath(gold, Paint()..color = const Color(0xFFFFD320));
+    final white = Path()
+      ..moveTo(w*.15,h*.38)
+      ..cubicTo(w*.30,h*.28,w*.42,h*.33,w*.52,h*.48)
+      ..lineTo(w*.64,h*.60)
+      ..lineTo(w*.52,h*.76)
+      ..quadraticBezierTo(w*.47,h*.83,w*.41,h*.75)
+      ..close();
+    canvas.drawPath(white, Paint()..color = Colors.white);
+  }
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
