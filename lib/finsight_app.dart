@@ -291,7 +291,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           FSAssetRow(asset: asset,
             onTap: () => openAsset(context, widget.store, asset)),
       const SizedBox(height: 14),
-      const Center(child: Text('Dados demonstrativos · sem cotação ao vivo',
+      Center(child: Text(widget.store.marketError ?? (widget.store.marketUpdatedAt == null ? 'Consultando cotações · demais índices demonstrativos' : 'Ações via brapi · demais índices demonstrativos'),
         style: TextStyle(fontSize: 11, color: fsMuted))),
     ],
   ));
@@ -417,7 +417,7 @@ class _MarketsScreenState extends State<MarketsScreen> {
         FSAssetRow(asset: asset,
           onTap: () => openAsset(context, widget.store, asset)),
       const SizedBox(height: 14),
-      const Center(child: Text('Índices e cotações demonstrativos',
+      const Center(child: Text('Índices demonstrativos · ações via brapi',
         style: TextStyle(fontSize: 11, color: fsMuted))),
     ],
   ));
