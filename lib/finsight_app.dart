@@ -15,16 +15,18 @@ class FinSightApp extends StatefulWidget {
     super.key,
     this.initialStage = FinSightEntryStage.splash,
     this.authService,
+    this.initialStore,
   });
   final FinSightEntryStage initialStage;
   final FinSightAuthService? authService;
+  final FinSightStore? initialStore;
   @override
   State<FinSightApp> createState() => _FinSightAppState();
 }
 
 class _FinSightAppState extends State<FinSightApp> {
   static const introStorageKey = 'finsight_onboarding_seen_v1';
-  FinSightStore store = FinSightStore();
+  late FinSightStore store;
   late FinSightEntryStage stage;
   Timer? splashTimer;
 
@@ -32,6 +34,7 @@ class _FinSightAppState extends State<FinSightApp> {
   void initState() {
     super.initState();
     stage = widget.initialStage;
+    store = widget.initialStore ?? FinSightStore();
     store.loadFavorites();
     store.refreshMarket();
     if (stage == FinSightEntryStage.splash) {
@@ -239,7 +242,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         scrollDirection: Axis.horizontal,
         child: Row(children: [
           for (final label in const [
-            'Maiores Altas', 'Maiores Baixas', 'Mais Negociadas'])
+            'Maiores Altas', 'Maiores Baixas'])
             Padding(padding: const EdgeInsets.only(right: 7),
               child: ChoiceChip(
                 key: ValueKey('highlight-$label'),
@@ -269,32 +272,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           FSAssetRow(asset: asset,
             onTap: () => openAsset(context, widget.store, asset)),
       const SizedBox(height: 14),
-      Center(child: Text(widget.store.marketError ?? (widget.store.marketUpdatedAt == null ? 'Consultando cotações · demais índices demonstrativos' : 'Ações via brapi · demais índices demonstrativos'),
+      const Center(child: Text('Fonte: brapi · cotações sujeitas a atraso',
         style: TextStyle(fontSize: 11, color: fsMuted))),
     ],
-  ));
-}
-
-class _IndexMini extends StatelessWidget {
-  const _IndexMini({required this.name, required this.value, required this.change});
-  final String name, value, change;
-  @override
-  Widget build(BuildContext context) => FSPanel(child: SizedBox(
-    height: 80,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(name, style: const TextStyle(color: fsMuted, fontSize: 12)),
-        const SizedBox(height: 6),
-        FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft,
-          child: Text(value, style: const TextStyle(
-            fontWeight: FontWeight.w700, fontSize: 18))),
-        const SizedBox(height: 4),
-        Text(change, style: const TextStyle(
-          color: fsGreen, fontWeight: FontWeight.w600, fontSize: 12)),
-      ],
-    ),
   ));
 }
 
@@ -307,9 +287,6 @@ class MarketsScreen extends StatefulWidget {
 
 
 class _MarketsScreenState extends State<MarketsScreen> {
-  String activeTab = 'Índices';
-  String assetFilter = 'Ações';
-
   List<FSAsset> get mostTraded => widget.store.assets
       .where((a) => a.category == 'Ações' && a.price > 0).toList();
 
@@ -334,30 +311,6 @@ class _MarketsScreenState extends State<MarketsScreen> {
     ],
   ));
 }
-
-class _MarketIndexRow extends StatelessWidget {
-  const _MarketIndexRow({required this.index});
-  final (String, String, String, String) index;
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 2),
-    child: Row(children: [
-      SizedBox(width: 31, height: 31,
-        child: _MarketFlag(code: index.$1)),
-      const SizedBox(width: 10),
-      Expanded(child: Text(index.$2, maxLines: 1,
-        overflow: TextOverflow.ellipsis, style: const TextStyle(
-          fontSize: 13, fontWeight: FontWeight.w600))),
-      Text(index.$3, style: const TextStyle(fontSize: 12,
-        fontWeight: FontWeight.w600)),
-      const SizedBox(width: 13),
-      SizedBox(width: 54, child: Text(index.$4,
-        textAlign: TextAlign.end, style: const TextStyle(
-          fontSize: 12, color: fsGreen, fontWeight: FontWeight.w700))),
-    ]),
-  );
-}
-
 
 class _MarketFlag extends StatelessWidget {
   const _MarketFlag({required this.code});
@@ -521,7 +474,6 @@ class MoreScreen extends StatelessWidget {
       const SizedBox(height: 22),
       for(final item in <(String, IconData, Widget)>[
         ('Favoritos', Icons.star_outline, FavoritesScreen(store:store)),
-        ('Comparar empresas', Icons.compare_arrows, const CompareScreen()),
         ('Conheça o FinSight', Icons.info_outline, const OnboardingScreen()),
       ]) ...[
         FSPanel(child: ListTile(
@@ -624,28 +576,6 @@ class _AssetAbout extends StatelessWidget {
       const FSHeading('Sobre a empresa'),
       FSPanel(child: Text(asset.name +
         ' · Acompanhe o preço e o histórico de mercado disponíveis.')),
-    ],
-  );
-}
-class _AssetIndicators extends StatelessWidget {
-  const _AssetIndicators({required this.asset});
-  final FSAsset asset;
-  @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(24), children: [
-      const FSHeading('Indicadores fundamentalistas'),
-      for (final entry in [
-        ('P/L',asset.pe), ('Valor de mercado',asset.marketCap),
-        ('Volume',asset.volume), ('Variação',fsPercent(asset.variation)),
-      ]) ...[
-        FSPanel(child: Row(children: [
-          Expanded(child: Text(entry.$1)),
-          Text(entry.$2,style:const TextStyle(fontWeight:FontWeight.w700)),
-        ])),
-        const SizedBox(height: 8),
-      ],
-      const Text('Valores demonstrativos; não representam recomendação.',
-        style: TextStyle(color:fsMuted,fontSize:12)),
     ],
   );
 }
