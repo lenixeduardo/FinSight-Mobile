@@ -5,6 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:finsight_mobile/data/market_api.dart';
 import 'package:finsight_mobile/finsight_app.dart';
 import 'package:finsight_mobile/models/finance_models.dart';
 import 'package:finsight_mobile/ui/finsight_components.dart';
@@ -45,6 +50,27 @@ void main() {
     }
   });
 
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+  
+  FinSightStore captureStore() => FinSightStore(
+    marketApi: FinSightMarketApi(client: MockClient((request) async {
+      return http.Response(jsonEncode({'results': [
+        {'symbol':'PETR4','regularMarketPrice':40.25,
+         'regularMarketChangePercent':1.25,
+         'historicalDataPrice':[{'close':39.0},{'close':40.25}]},
+        {'symbol':'VALE3','regularMarketPrice':60.50,
+         'regularMarketChangePercent':-0.8,
+         'historicalDataPrice':[{'close':61.0},{'close':60.5}]},
+        {'symbol':'ITUB4','regularMarketPrice':35.0,
+         'regularMarketChangePercent':0.3,
+         'historicalDataPrice':[{'close':34.0},{'close':35.0}]},
+        {'symbol':'MGLU3','regularMarketPrice':10.0,
+         'regularMarketChangePercent':-1.5,
+         'historicalDataPrice':[{'close':10.5},{'close':10.0}]},
+      ]}),200);
+    })),
+  );
+
   Future<void> mount(WidgetTester tester, {Size size = const Size(390,844), bool enterDemo = true}) async {
     tester.view.devicePixelRatio=1;
     tester.view.physicalSize=size;
@@ -52,9 +78,11 @@ void main() {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
     });
+    final store = captureStore();
+    await store.refreshMarket();
     await tester.pumpWidget(
-      RepaintBoundary(key:boundaryKey, child:const FinSightApp(
-        initialStage: FinSightEntryStage.login)));
+      RepaintBoundary(key:boundaryKey, child:FinSightApp(
+        initialStage: FinSightEntryStage.login, initialStore: store)));
     await tester.pumpAndSettle();
     if (enterDemo) {
       await tester.tap(find.byKey(const ValueKey('enter-demo')));
@@ -131,28 +159,22 @@ void main() {
     await save(tester,'390_login');
   });
 
-  testWidgets('CDI em mercado com icone vetorial', (tester) async {
+  testWidgets('Dashboard com cotações verificadas em 390x844', (tester) async {
+    await mount(tester);
+    expect(find.text('Cotações de ações brasileiras'),findsOneWidget);
+    expect(find.text('Ibovespa'),findsNothing);
+    await save(tester,'390_dashboard_cotacoes');
+  });
+
+  testWidgets('Mercado de ações em 390x844', (tester) async {
     await mount(tester);
     await tester.tap(find.text('Mercado').last);
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('market-icon-cdi')),findsOneWidget);
-    await save(tester,'390_mercado_cdi');
+    expect(find.text('Ações acompanhadas'),findsOneWidget);
+    await save(tester,'390_mercado_acoes');
   });
 
-  testWidgets('Dashboard em 390x844', (tester) async {
-    await mount(tester);
-    expect(find.text('Olá, Investidor'),findsOneWidget);
-    await save(tester,'390_dashboard');
-  });
-
-  testWidgets('Mercado em 390x844', (tester) async {
-    await mount(tester);
-    await tester.tap(find.text('Mercado').last);
-    await tester.pumpAndSettle();
-    await save(tester,'390_mercado');
-  });
-
-  testWidgets('Busca filtrada em 390x844', (tester) async {
+  testWidgets('Busca de ações em 390x844', (tester) async {
     await mount(tester);
     await tester.tap(find.text('Buscar').last);
     await tester.pumpAndSettle();
@@ -162,93 +184,35 @@ void main() {
     await save(tester,'390_busca_petr4');
   });
 
-  testWidgets('Carteira vazia em 390x844', (tester) async {
+  testWidgets('Carteira sem compra e venda em 390x844', (tester) async {
     await mount(tester);
     await tester.tap(find.text('Carteira').last);
     await tester.pumpAndSettle();
-    await save(tester,'390_carteira_vazia');
+    expect(find.textContaining('não estão disponíveis'),findsOneWidget);
+    await save(tester,'390_carteira_mvp');
   });
 
-  testWidgets('Modal de compra em 390x844', (tester) async {
-    await mount(tester);
-    await tester.scrollUntilVisible(find.text('PETR4'),140,
-      scrollable:find.byType(Scrollable).first);
-    await tester.tap(find.text('PETR4').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Comprar'));
-    await tester.pumpAndSettle();
-    expect(tester.getSize(find.byType(OperationSheet)).height,
-      closeTo(720, 2), reason:'Modal V5 deve medir 720 dp');
-    expect(tester.getBottomRight(find.byKey(const ValueKey('operation-submit'))).dy,
-      lessThanOrEqualTo(844),
-      reason:'CTA deve ficar visivel sem rolar o formulario');
-    expect(find.text('Total estimado'), findsOneWidget);
-    await save(tester,'390_modal_compra');
-  });
-
-  testWidgets('Modal venda invalida em 390x844', (tester) async {
-    await mount(tester);
-    await tester.scrollUntilVisible(find.text('PETR4'),140,
-      scrollable:find.byType(Scrollable).first);
-    await tester.tap(find.text('PETR4').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Vender'));
-    await tester.pumpAndSettle();
-    await save(tester,'390_modal_venda_sem_saldo');
-  });
-
-  testWidgets('Modal responsivo em 320x640', (tester) async {
+  testWidgets('Detalhes sem CTA de negociação em 320x640', (tester) async {
     tester.view.devicePixelRatio=1;
     tester.view.physicalSize=const Size(320,640);
     addTearDown(() {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
     });
-    final store=FinSightStore();
+    final store=captureStore();
+    await store.refreshMarket();
     addTearDown(store.dispose);
     await tester.pumpWidget(RepaintBoundary(
       key:boundaryKey,
       child:MaterialApp(
         debugShowCheckedModeBanner:false,
         theme:finSightTheme(),
-        home:FSAssetDetails(store:store,asset:fsAssets.first),
+        home:FSAssetDetails(store:store,asset:store.assets.first),
       ),
     ));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Comprar'));
-    await tester.pumpAndSettle();
-    expect(tester.getBottomRight(find.byKey(const ValueKey('operation-submit'))).dy,
-      lessThanOrEqualTo(640),
-      reason:'Em 320x640 o CTA deve permanecer fixo e acessivel');
-    await save(tester,'320_modal_compra');
+    expect(find.text('Comprar'),findsNothing);
+    expect(find.text('Vender'),findsNothing);
+    await save(tester,'320_detalhe_sem_negociacao');
   });
-  testWidgets('Modal venda com saldo em 390x844', (tester) async {
-    tester.view.devicePixelRatio=1;
-    tester.view.physicalSize=const Size(390,844);
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
-    final store=FinSightStore();
-    addTearDown(store.dispose);
-    store.register(FSOperation(
-      asset:fsAssets.first,quantity:100,price:37.50,
-      isBuy:true,date:DateTime(2024,6,10)));
-    await tester.pumpWidget(RepaintBoundary(key:boundaryKey,
-      child:MaterialApp(
-        debugShowCheckedModeBanner:false,
-        theme:finSightTheme(),
-        home:FSAssetDetails(store:store,asset:fsAssets.first),
-      ),
-    ));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Vender'));
-    await tester.pumpAndSettle();
-    expect(find.text('Registrar venda'),findsOneWidget);
-    expect(find.text('R\$ 1.875,00'),findsOneWidget);
-    expect(tester.getBottomRight(find.byKey(const ValueKey('operation-submit'))).dy,
-      lessThanOrEqualTo(844));
-    await save(tester,'390_modal_venda_com_saldo');
-  });
-
 }
