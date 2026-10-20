@@ -569,64 +569,29 @@ class PortfolioScreen extends StatelessWidget {
   const PortfolioScreen({super.key, required this.store});
   final FinSightStore store;
   @override
-  Widget build(BuildContext context) {
-    final positions=fsAssets.where((a)=>store.quantity(a.ticker)>0).toList();
-    return SafeArea(child: ListView(
+  Widget build(BuildContext context) => SafeArea(
+    child: ListView(
       key: const ValueKey('portfolio-screen'),
       padding: const EdgeInsets.all(24),
-      children: [
-        const Text('Minha carteira', style: TextStyle(
+      children: const [
+        Text('Minha carteira', style: TextStyle(
           fontSize: 24, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 18),
+        SizedBox(height: 18),
         FSPanel(child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Patrimônio total', style: TextStyle(color: fsMuted)),
-            const SizedBox(height: 8),
-            Text(fsMoney(store.portfolioValue), style: const TextStyle(
-              fontSize: 28, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 12),
-            Text('Investido líquido: ' + fsMoney(store.invested),
-              style: const TextStyle(color: fsMuted)),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Acompanhamento de carteira', style: TextStyle(
+              fontWeight: FontWeight.w700, fontSize: 17)),
+            SizedBox(height: 10),
+            Text('A compra, a venda e o registro de operações não estão disponíveis nesta versão inicial.'),
+            SizedBox(height: 8),
+            Text('Explore cotações e adicione ativos aos favoritos para acompanhar o mercado.',
+              style: TextStyle(color: fsMuted)),
           ],
         )),
-        const SizedBox(height: 24),
-        const FSHeading('Meus ativos'),
-        if (positions.isEmpty)
-          FSPanel(child: Column(children: [
-            const Icon(Icons.account_balance_wallet_outlined,
-              size: 48, color: fsMuted),
-            const SizedBox(height: 12),
-            const Text('Sua carteira está vazia'),
-            const SizedBox(height: 8),
-            const Text('Registre uma compra para começar.',
-              style: TextStyle(color: fsMuted)),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: ()=>openOperation(context,store,fsAssets.first),
-              child: const Text('Adicionar operação')),
-          ]))
-        else
-          for(final asset in positions)...[
-            FSAssetRow(asset: asset,
-              onTap: ()=>openAsset(context,store,asset)),
-            Padding(padding: const EdgeInsets.only(left: 10, bottom: 12),
-              child: Text('Quantidade: ' + store.quantity(asset.ticker).toString(),
-                style: const TextStyle(color: fsMuted, fontSize: 12))),
-          ],
-        const SizedBox(height: 24),
-        const FSHeading('Histórico de operações'),
-        for (final op in store.operations)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(op.isBuy ? Icons.add_circle_outline :
-              Icons.remove_circle_outline, color: op.isBuy ? fsGreen : fsRed),
-            title: Text(op.asset.ticker + (op.isBuy ? ' · Compra' : ' · Venda')),
-            subtitle: Text(op.quantity.toString() + ' ações'),
-            trailing: Text(fsMoney(op.total)),
-          ),
       ],
-    ));
-  }
+    ),
+  );
 }
 
 class MoreScreen extends StatelessWidget {
@@ -734,23 +699,6 @@ class FSAssetDetails extends StatelessWidget {
           message: 'Histórico de dividendos requer integração de dados.'),
         _AssetGraph(asset:asset),
       ]),
-      bottomNavigationBar: SafeArea(child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 10, 24, 16),
-        child: Row(children: [
-          Expanded(child: OutlinedButton(
-            onPressed: ()=>openOperation(context,store,asset,isBuy:false),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: fsRed, minimumSize: const Size.fromHeight(52)),
-            child: const Text('Vender'))),
-          const SizedBox(width: 12),
-          Expanded(child: FilledButton(
-            onPressed: ()=>openOperation(context,store,asset),
-            style: FilledButton.styleFrom(
-              backgroundColor: fsGreen,
-              minimumSize: const Size.fromHeight(52)),
-            child: const Text('Comprar'))),
-        ]),
-      )),
     ),
   );
 }
@@ -951,311 +899,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           onPressed:step==2?()=>Navigator.pop(context):
             ()=>setState(()=>step++),
           child:Text(step==2?'Começar':'Continuar'))),
-      ]))),
-  );
-}
-
-Future<void> openOperation(BuildContext context, FinSightStore store,
-  FSAsset asset,{bool isBuy=true}) async {
-  final op=await showModalBottomSheet<FSOperation>(
-    context:context,isScrollControlled:true,useSafeArea:true,
-    showDragHandle:false,backgroundColor:Colors.white,
-    shape:const RoundedRectangleBorder(
-      borderRadius:BorderRadius.vertical(top:Radius.circular(24))),
-    builder:(_)=>OperationSheet(asset:asset,store:store,initialBuy:isBuy,
-      viewportHeight:MediaQuery.sizeOf(context).height),
-  );
-  if (op==null || !context.mounted)return;
-  store.register(op);
-  Navigator.of(context).push(MaterialPageRoute<void>(
-    builder:(_)=>OperationConfirmation(operation:op)));
-}
-
-
-class OperationSheet extends StatefulWidget {
-  const OperationSheet({super.key, required this.asset, required this.store,
-    this.initialBuy = true, required this.viewportHeight});
-  final FSAsset asset;
-  final FinSightStore store;
-  final bool initialBuy;
-  final double viewportHeight;
-
-  @override
-  State<OperationSheet> createState() => _OperationSheetState();
-}
-
-class _OperationSheetState extends State<OperationSheet> {
-  late bool isBuy = widget.initialBuy;
-  late final TextEditingController qty;
-  late final TextEditingController unit;
-  DateTime selectedDate = DateTime(2024, 6, 10);
-
-  String get selectedDateLabel =>
-    selectedDate.day.toString().padLeft(2,'0') + '/' +
-    selectedDate.month.toString().padLeft(2,'0') + '/' +
-    selectedDate.year.toString();
-
-  @override
-  void initState() {
-    super.initState();
-    qty = TextEditingController(text:widget.initialBuy ? '100' : '50');
-    unit = TextEditingController(text:widget.asset.ticker == 'PETR4'
-      ? '37,50' : widget.asset.price.toStringAsFixed(2).replaceAll('.',','));
-    qty.addListener(_refresh);
-    unit.addListener(_refresh);
-  }
-
-  void _refresh() { if(mounted) setState(() {}); }
-  @override
-  void dispose() {
-    qty.removeListener(_refresh); unit.removeListener(_refresh);
-    qty.dispose(); unit.dispose(); super.dispose();
-  }
-  double get price => double.tryParse(
-    unit.text.replaceAll('.','').replaceAll(',','.')) ?? 0;
-  int get quantity => int.tryParse(qty.text) ?? 0;
-  bool get isValid => quantity > 0 && price > 0 &&
-    (isBuy || quantity <= widget.store.quantity(widget.asset.ticker));
-
-  Widget _label(String value) => Padding(
-    padding: const EdgeInsets.only(bottom:8),
-    child: Text(value, style: const TextStyle(
-      fontSize:13,fontWeight:FontWeight.w700,color:fsInk)));
-
-  Widget _form() => Padding(
-    padding: const EdgeInsets.fromLTRB(24,14,24,12),
-    child: Column(crossAxisAlignment:CrossAxisAlignment.stretch,
-      mainAxisSize:MainAxisSize.min,children:[
-      _label('Tipo de operação'),
-      Container(
-        height:48,
-        padding:const EdgeInsets.all(4),
-        decoration:BoxDecoration(color:fsCanvas,
-          borderRadius:BorderRadius.circular(11),
-          border:Border.all(color:fsBorder)),
-        child:Row(children:[
-          for(final buy in [true,false]) Expanded(
-            child:TextButton(
-              key:ValueKey(buy ? 'operation-buy-tab' : 'operation-sell-tab'),
-              onPressed:()=>setState(()=>isBuy=buy),
-              style:TextButton.styleFrom(
-                padding:EdgeInsets.zero,
-                foregroundColor:isBuy==buy ? Colors.white : fsMuted,
-                backgroundColor:isBuy==buy ? (buy ? fsGreen : fsRed) : Colors.transparent,
-                shape:RoundedRectangleBorder(
-                  borderRadius:BorderRadius.circular(8))),
-              child:Text(buy ? 'Compra' : 'Venda',
-                style:const TextStyle(fontSize:14,fontWeight:FontWeight.w700)),
-            )),
-        ]),
-      ),
-      const SizedBox(height:16),
-      _label('Ativo'),
-      Container(
-        height:68,
-        padding:const EdgeInsets.symmetric(horizontal:14),
-        decoration:BoxDecoration(color:Colors.white,
-          border:Border.all(color:fsBorder),
-          borderRadius:BorderRadius.circular(11)),
-        child:Row(children:[
-          FSAvatar(widget.asset.ticker,size:36),
-          const SizedBox(width:12),
-          Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,
-            mainAxisAlignment:MainAxisAlignment.center,children:[
-            Text(widget.asset.ticker,style:const TextStyle(fontSize:15,
-              fontWeight:FontWeight.w700)),
-            Text(widget.asset.name,maxLines:1,overflow:TextOverflow.ellipsis,
-              style:const TextStyle(fontSize:12,color:fsMuted)),
-          ])),
-          Column(mainAxisAlignment:MainAxisAlignment.center,
-            crossAxisAlignment:CrossAxisAlignment.end,children:[
-              Text(fsMoney(widget.asset.price),style:const TextStyle(
-                fontWeight:FontWeight.w700,fontSize:14)),
-              const SizedBox(height:3),
-              Text(fsPercent(widget.asset.variation),style:TextStyle(
-                color:widget.asset.variation>=0 ? fsTextGreen : fsRed,
-                fontSize:12,fontWeight:FontWeight.w700)),
-            ]),
-        ]),
-      ),
-      const SizedBox(height:16),
-      Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,
-          children:[
-          _label('Quantidade'),
-          SizedBox(height:48,child:TextField(
-            key:const ValueKey('operation-quantity'),
-            controller:qty,
-            keyboardType:TextInputType.number,
-            decoration:const InputDecoration(contentPadding:
-              EdgeInsets.symmetric(horizontal:14,vertical:10)),
-          )),
-        ])),
-        const SizedBox(width:12),
-        Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,
-          children:[
-          _label('Preço unitário'),
-          SizedBox(height:48,child:TextField(
-            key:const ValueKey('operation-price'),
-            controller:unit,
-            keyboardType:const TextInputType.numberWithOptions(decimal:true),
-            decoration:const InputDecoration(prefixText:'R\$ ',
-              contentPadding:EdgeInsets.symmetric(horizontal:14,vertical:10)),
-          )),
-        ])),
-      ]),
-      if(!isBuy && quantity > widget.store.quantity(widget.asset.ticker))
-        Padding(padding:const EdgeInsets.only(top:8),
-          child:Text('Quantidade superior ao saldo disponível (' +
-            widget.store.quantity(widget.asset.ticker).toString() + ').',
-            style:const TextStyle(color:fsRed,fontSize:12))),
-      const SizedBox(height:28),
-      _label('Data da operação'),
-      SizedBox(height:48,child:TextFormField(
-        key:ValueKey('operation-date-' + selectedDateLabel),
-        initialValue:selectedDateLabel,
-        readOnly:true,
-        onTap:() async {
-          final picked=await showDatePicker(
-            context:context,initialDate:selectedDate,
-            firstDate:DateTime(2000),lastDate:DateTime(2100));
-          if(picked!=null && mounted) setState(()=>selectedDate=picked);
-        },
-        decoration:const InputDecoration(
-          contentPadding:EdgeInsets.symmetric(horizontal:14,vertical:10),
-          suffixIcon:Icon(Icons.calendar_today_outlined,size:18)),
-      )),
-      const SizedBox(height:19),
-      Container(
-        height:86,
-        padding:const EdgeInsets.fromLTRB(16,8,16,4),
-        decoration:BoxDecoration(color:fsCanvas,
-          border:Border.all(color:fsBorder),
-          borderRadius:BorderRadius.circular(11)),
-        child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-          const Text('Total estimado',
-            style:TextStyle(fontSize:12,color:fsMuted)),
-          const SizedBox(height:3),
-          Text(fsMoney(quantity*price),style:const TextStyle(
-            fontWeight:FontWeight.w800,fontSize:25)),
-          const Text('Sem taxas e impostos',
-            style:TextStyle(fontSize:11,color:fsMuted)),
-        ]),
-      ),
-    ]),
-  );
-
-  Widget _footer() => DecoratedBox(
-    decoration:const BoxDecoration(color:Colors.white,
-      border:Border(top:BorderSide(color:fsBorder))),
-    child:Padding(
-      padding:const EdgeInsets.fromLTRB(24,21,24,34),
-      child:Row(children:[
-        SizedBox(width:116,child:SizedBox(height:52,child:OutlinedButton(
-          style:OutlinedButton.styleFrom(
-            padding:EdgeInsets.zero,
-            foregroundColor:fsInk,
-            side:const BorderSide(color:fsBorder),
-            shape:RoundedRectangleBorder(
-              borderRadius:BorderRadius.circular(10))),
-          onPressed:()=>Navigator.pop(context),
-          child:const Text('Cancelar',style:TextStyle(
-            fontWeight:FontWeight.w700,fontSize:13)),
-        ))),
-        const SizedBox(width:12),
-        Expanded(child:SizedBox(height:52,child:FilledButton(
-          key:const ValueKey('operation-submit'),
-          style:FilledButton.styleFrom(
-            padding:const EdgeInsets.symmetric(horizontal:4),
-            backgroundColor:isBuy ? fsGreen : fsRed,
-            shape:RoundedRectangleBorder(
-              borderRadius:BorderRadius.circular(10))),
-          onPressed:isValid ? ()=>Navigator.pop(context,FSOperation(
-            asset:widget.asset,quantity:quantity,price:price,
-            isBuy:isBuy,date:selectedDate)) : null,
-          child:FittedBox(fit:BoxFit.scaleDown,child:Text(
-            isBuy ? 'Registrar compra' : 'Registrar venda',
-            style:const TextStyle(fontSize:14,fontWeight:FontWeight.w700))),
-        ))),
-      ]),
-    ),
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    final keyboard=MediaQuery.viewInsetsOf(context).bottom;
-    // O frame aprovado e de 390 x 720 dp. Em telas menores,
-    // preserva o rodape e deixa apenas o formulario rolavel.
-    final maxHeight=widget.viewportHeight-keyboard-12;
-    final height=maxHeight>=720 ? 720.0 : maxHeight.clamp(240.0,720.0).toDouble();
-    return SizedBox(
-      height:height,
-      child:Column(children:[
-        SizedBox(height:24,child:Center(
-          child:Container(width:36,height:4,
-            decoration:BoxDecoration(color:fsBorder,
-              borderRadius:BorderRadius.circular(4))))),
-        Padding(padding:const EdgeInsets.fromLTRB(24,4,16,12),
-          child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            SizedBox(height:44,child:Row(children:[
-              const Expanded(child:Text('Nova operação',
-                style:TextStyle(fontSize:20,fontWeight:FontWeight.w700))),
-              IconButton(
-                tooltip:'Fechar',onPressed:()=>Navigator.pop(context),
-                padding:EdgeInsets.zero,
-                constraints:const BoxConstraints.tightFor(width:44,height:44),
-                icon:const Icon(Icons.close,size:21,color:fsMuted)),
-            ])),
-            const Text('Registre uma movimentação na carteira',
-              style:TextStyle(fontSize:12,color:fsMuted)),
-          ]),
-        ),
-        const Divider(height:1,color:fsBorder),
-        Expanded(child:SingleChildScrollView(
-          key:const ValueKey('operation-form-scroll'),
-          keyboardDismissBehavior:ScrollViewKeyboardDismissBehavior.onDrag,
-          child:_form(),
-        )),
-        _footer(),
-      ]),
-    );
-  }
-}
-
-class OperationConfirmation extends StatelessWidget {
-  const OperationConfirmation({super.key,required this.operation});
-  final FSOperation operation;
-  @override
-  Widget build(BuildContext context)=>Scaffold(
-    appBar:AppBar(title:const Text('Operação registrada')),
-    body:SafeArea(child:Padding(padding:const EdgeInsets.all(24),
-      child:Column(children:[
-        const Spacer(),
-        const Icon(Icons.check_circle,color:fsGreen,size:78),
-        const SizedBox(height:20),
-        const Text('Operação realizada!',style:TextStyle(
-          fontSize:23,fontWeight:FontWeight.w700)),
-        const SizedBox(height:12),
-        Text(operation.asset.ticker + ' · ' +
-          (operation.isBuy?'Compra':'Venda') +
-          ' de ' + operation.quantity.toString() + ' ações'),
-        const SizedBox(height:28),
-        FSPanel(child:Column(children:[
-          Row(children:[
-            const Expanded(child:Text('Preço unitário')),
-            Text(fsMoney(operation.price)),
-          ]),
-          const SizedBox(height:12),
-          Row(children:[
-            const Expanded(child:Text('Total')),
-            Text(fsMoney(operation.total),style:const TextStyle(
-              fontWeight:FontWeight.w700)),
-          ]),
-        ])),
-        const Spacer(),
-        SizedBox(width:double.infinity,child:FilledButton(
-          onPressed:()=>Navigator.pop(context),
-          child:const Text('Concluir'))),
       ]))),
   );
 }
