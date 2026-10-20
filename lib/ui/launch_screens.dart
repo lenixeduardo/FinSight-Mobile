@@ -46,43 +46,117 @@ class _FinSightMarkPainter extends CustomPainter {
 
 class FinSightSplashScreen extends StatelessWidget {
   const FinSightSplashScreen({super.key});
+
   @override
-  Widget build(BuildContext context)=>Scaffold(
-    backgroundColor:Colors.white,
-    body:SafeArea(child:Column(children:[
-      const Spacer(flex:3),
-      TweenAnimationBuilder<double>(
-        tween:Tween(begin:.84,end:1),
-        duration:const Duration(milliseconds:700),
-        curve:Curves.easeOutCubic,
-        builder:(context,v,child)=>Opacity(
-          opacity:((v-.84)/.16).clamp(0.0,1.0).toDouble(),
-          child:Transform.scale(scale:v,child:child)),
-        child:const Column(children:[
-          FinSightBrandMark(size:92),
-          SizedBox(height:12),
-          Text('FinSight',style:TextStyle(
-            color:fsInk,fontSize:36,fontWeight:FontWeight.w800,
-            letterSpacing:-1.5)),
-          SizedBox(height:5),
-          Text('Financial Intelligence',style:TextStyle(
-            color:fsMuted,fontSize:12,letterSpacing:1)),
-        ])),
-      const Spacer(flex:2),
-      const Text('Informação, análise e clareza\npara melhores decisões.',
-        textAlign:TextAlign.center,
-        style:TextStyle(fontSize:13,color:fsMuted,height:1.6)),
-      const SizedBox(height:28),
-      SizedBox(width:120,child:TweenAnimationBuilder<double>(
-        tween:Tween<double>(begin:0,end:1),
-        duration:const Duration(milliseconds:1300),
-        builder:(context,v,_)=>LinearProgressIndicator(
-          value:v,minHeight:3,
-          borderRadius:BorderRadius.circular(3),
-          color:fsGreen,backgroundColor:fsBorder))),
-      const SizedBox(height:48),
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Colors.white,
+    body: LayoutBuilder(builder: (context, bounds) => Stack(children: [
+      Positioned.fill(child: DecoratedBox(decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter, end: Alignment.bottomCenter,
+          colors: [Colors.white, Color(0xFFF9FFFC), Colors.white],
+        ),
+      ))),
+      Positioned(
+        left: 0, right: 0, bottom: bounds.maxHeight * .13,
+        height: bounds.maxHeight * .43,
+        child: IgnorePointer(child: CustomPaint(
+          painter: const _SplashMarketBackground(),
+        )),
+      ),
+      SafeArea(child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Column(children: [
+          const Spacer(flex: 4),
+          const FinSightBrandMark(size: 92),
+          const SizedBox(height: 12),
+          const Text('FinSight', style: TextStyle(
+            color: fsInk, fontSize: 38, fontWeight: FontWeight.w800,
+            letterSpacing: -1.5)),
+          const SizedBox(height: 6),
+          const Text('INTELIGÊNCIA FINANCEIRA', style: TextStyle(
+            color: fsMuted, fontSize: 10, letterSpacing: 2.3)),
+          const Spacer(flex: 5),
+          const Align(alignment: Alignment.centerLeft,
+            child: Text('Mais dados.\\nMelhores decisões.\\nUm futuro mais sólido.',
+              style: TextStyle(fontSize: 13, height: 1.5, color: fsMuted))),
+          const SizedBox(height: 22),
+          Align(alignment: Alignment.centerLeft, child: SizedBox(
+            width: 146,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 1350),
+              builder: (context, value, _) => LinearProgressIndicator(
+                value: value, minHeight: 3,
+                borderRadius: BorderRadius.circular(4),
+                color: fsGreen, backgroundColor: const Color(0xFFD7EEE5)),
+            ),
+          )),
+          const SizedBox(height: 35),
+        ]),
+      )),
     ])),
   );
+}
+
+/// Ondas fluidas e candles ascendentes inspirados no primeiro background
+/// aprovado, renderizados nativamente em qualquer resolução de tela.
+class _SplashMarketBackground extends CustomPainter {
+  const _SplashMarketBackground();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    final bounds = Offset.zero & size;
+    final haze = Paint()..shader = const LinearGradient(
+      begin: Alignment.topCenter, end: Alignment.bottomCenter,
+      colors: [Color(0x00B0EEDB), Color(0x4AC1F3E3), Color(0x00FFFFFF)],
+      stops: [0, .52, 1],
+    ).createShader(bounds);
+    canvas.drawRect(bounds, haze);
+
+    for (var layer = 0; layer < 42; layer++) {
+      final t = layer / 41.0;
+      final wave = Path();
+      for (var step = 0; step <= 110; step++) {
+        final x = w * step / 110;
+        final phase = step / 110.0;
+        final y = h * (.36 + t * .34) +
+          math.sin(phase * math.pi * 2.35 + t * 1.65) * h * (.105 + t * .028) -
+          phase * h * .09;
+        if (step == 0) { wave.moveTo(x, y); }
+        else { wave.lineTo(x, y); }
+      }
+      canvas.drawPath(wave, Paint()
+        ..color = Color.lerp(const Color(0x2497E8D0),
+            const Color(0x0B009E74), t)!
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = .85);
+    }
+
+    final rising = Paint()..color = const Color(0x6874CEAC);
+    final falling = Paint()..color = const Color(0x5480D5B6);
+    for (var i = 0; i < 23; i++) {
+      final x = w * (.37 + i * .027);
+      final progress = i / 22.0;
+      final trend = h * (.75 - progress * .63);
+      final volatility = math.sin(i * 1.8) * h * .045;
+      final cy = trend + volatility;
+      final candleHeight = h * (.025 + (i % 4) * .008);
+      final candleWidth = math.max(2.5, w * .011);
+      final paint = i % 5 == 2 ? falling : rising;
+      canvas.drawLine(Offset(x, cy - candleHeight * .95),
+        Offset(x, cy + candleHeight * .95),
+        Paint()..color = paint.color..strokeWidth = .7);
+      canvas.drawRRect(RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(x, cy),
+          width: candleWidth, height: candleHeight),
+        const Radius.circular(1)), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class FinSightOnboardingFlow extends StatefulWidget {
