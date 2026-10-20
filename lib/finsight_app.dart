@@ -600,7 +600,7 @@ class FSAssetDetails extends StatelessWidget {
       ),
       body: TabBarView(children: [
         _AssetAbout(asset:asset),
-        _AssetIndicators(asset:asset),
+        const _InfoPage(heading: 'Indicadores', message: 'Indicadores fundamentalistas aguardam fonte validada.'),
         const _InfoPage(
           heading: 'Resultados',
           message: 'Resultados financeiros indisponíveis no modo demo.'),
@@ -623,8 +623,7 @@ class _AssetAbout extends StatelessWidget {
       const SizedBox(height: 22),
       const FSHeading('Sobre a empresa'),
       FSPanel(child: Text(asset.name +
-        ' · Informações descritivas e dados de demonstração. '
-        'Para dados oficiais e atuais, conecte um provedor de mercado.')),
+        ' · Acompanhe o preço e o histórico de mercado disponíveis.')),
     ],
   );
 }
@@ -665,17 +664,15 @@ class _AssetGraphState extends State<_AssetGraph> {
         style: const TextStyle(fontSize:22,fontWeight:FontWeight.w700)),
       const SizedBox(height: 20),
       FSPanel(child: Column(children: [
-        FSCandleChart(asset:widget.asset,height:260),
+        if (widget.asset.history.length >= 2)
+          FSSparkline(values: widget.asset.history, height: 220)
+        else
+          const Text('Histórico indisponível para este ativo.'),
         const SizedBox(height: 10),
-        Wrap(spacing: 6, children: [
-          for(final p in ['1D','1S','1M','3M','1A','5A'])
-            ChoiceChip(label:Text(p),selected:period==p,
-              onSelected:(_)=>setState(()=>period=p)),
-        ]),
+        const Text('Período: 1 mês', style: TextStyle(color: fsMuted)),
       ])),
       const SizedBox(height: 12),
-      const Text('Candles sintetizados para demonstração. '
-        'Trocar por OHLC real antes da homologação.',
+      const Text('Histórico de fechamentos fornecido pela brapi. Os períodos adicionais serão disponibilizados após integração.',
         style:TextStyle(color:fsMuted,fontSize:12)),
     ],
   );
