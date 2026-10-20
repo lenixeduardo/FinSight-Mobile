@@ -32,6 +32,7 @@ class _FinSightAppState extends State<FinSightApp> {
   void initState() {
     super.initState();
     stage = widget.initialStage;
+    store.loadFavorites();
     store.refreshMarket();
     if (stage == FinSightEntryStage.splash) {
       splashTimer = Timer(
@@ -42,7 +43,7 @@ class _FinSightAppState extends State<FinSightApp> {
   void _clearSession() {
     if (!mounted) return;
     store.dispose();
-    store = FinSightStore()..refreshMarket();
+    store = FinSightStore()..loadFavorites()..refreshMarket();
     setState(() => stage = FinSightEntryStage.login);
   }
 
@@ -193,14 +194,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String activeFilter = 'Maiores Altas';
   List<FSAsset> get highlights {
     if (activeFilter == 'Maiores Baixas') {
-      final ordered = [...fsAssets]..sort((a,b) => a.variation.compareTo(b.variation));
+      final ordered = [...widget.store.assets.where((a) => a.price > 0)]..sort((a,b) => a.variation.compareTo(b.variation));
       return ordered.take(4).toList();
     }
-    if (activeFilter == 'Mais Negociadas') {
-      return [fsAssets[0], fsAssets[2], fsAssets[1], fsAssets[3]];
-    }
-    // Mesma ordem da prancha visual aprovada, com dados demonstrativos.
-    return fsAssets.take(4).toList();
+    return widget.store.assets.where((a) => a.price > 0).take(4).toList();
   }
 
   @override
@@ -225,36 +222,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           icon: const Icon(Icons.notifications_none_outlined)),
       ]),
       const SizedBox(height: 22),
-      FSPanel(child: SizedBox(height: 100, child: Row(
-        children: [
-          const Expanded(flex: 6, child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Ibovespa', style: TextStyle(fontSize: 13, color: fsMuted)),
-              SizedBox(height: 7),
-              FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft,
-                child: Text('128.532,17', style: TextStyle(
-                  fontSize: 26, fontWeight: FontWeight.w700))),
-              SizedBox(height: 7),
-              Text('+1,42%', style: TextStyle(fontSize: 15,
-                color: fsGreen, fontWeight: FontWeight.w700)),
-            ],
-          )),
-          const SizedBox(width: 8),
-          Expanded(flex: 5, child: FSSparkline(
-            values: fsAssets[0].history,
-            height: 76)),
-        ],
-      ))),
-      const SizedBox(height: 12),
-      const Row(children: [
-        Expanded(child: _IndexMini(name: 'Dólar', value: 'R\$ 5,23',
-            change: '+0,16%')),
-        SizedBox(width: 12),
-        Expanded(child: _IndexMini(name: 'S&P 500', value: '4.982,31',
-            change: '+0,62%')),
-      ]),
+      FSPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Cotações de ações brasileiras', style: TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Text(widget.store.marketLoading ? 'Atualizando cotações...' :
+          widget.store.marketError ?? (widget.store.marketUpdatedAt == null
+            ? 'Aguardando dados do mercado' : 'Última consulta: ${widget.store.marketUpdatedAt!.day.toString().padLeft(2,'0')}/${widget.store.marketUpdatedAt!.month.toString().padLeft(2,'0')} ${widget.store.marketUpdatedAt!.hour.toString().padLeft(2,'0')}:${widget.store.marketUpdatedAt!.minute.toString().padLeft(2,'0')}'),
+          style: const TextStyle(color: fsMuted, fontSize: 12)),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(onPressed: widget.store.marketLoading ? null : widget.store.refreshMarket,
+          icon: const Icon(Icons.refresh), label: const Text('Atualizar cotações')),
+      ])),
       const SizedBox(height: 25),
       const FSHeading('Destaques do dia'),
       SingleChildScrollView(
@@ -332,38 +310,8 @@ class _MarketsScreenState extends State<MarketsScreen> {
   String activeTab = 'Índices';
   String assetFilter = 'Ações';
 
-  static const indices = <(String, String, String, String)>[
-    ('BR', 'Ibovespa', '128.532,17', '+1,42%'),
-    ('BR', 'IFIX', '3.214,08', '+0,31%'),
-    ('US', 'S&P 500', '4.982,31', '+0,62%'),
-    ('US', 'NASDAQ', '15.628,24', '+0,38%'),
-    ('BR', 'Dólar', 'R\$ 5,23', '+0,16%'),
-    ('EU', 'Euro', 'R\$ 5,71', '+0,12%'),
-    ('CDI', 'CDI', '10,65%', '0,00%'),
-  ];
-  static const cambio = <(String, String, String, String)>[
-    ('US', 'Dólar', 'R\$ 5,23', '+0,16%'),
-    ('EU', 'Euro', 'R\$ 5,71', '+0,12%'),
-  ];
-  static const commodities = <(String, String, String, String)>[
-    ('AU', 'Ouro', 'US\$ 2.371,00', '+0,36%'),
-    ('BR', 'Petróleo Brent', 'US\$ 80,40', '+0,81%'),
-  ];
-  static const setores = <(String, String, String, String)>[
-    ('FIN', 'Financeiro', '5.742,10', '+0,82%'),
-    ('ENE', 'Energia', '4.038,40', '+0,55%'),
-  ];
-  List<(String,String,String,String)> get marketRows =>
-      switch (activeTab) {
-        'Câmbio' => cambio,
-        'Commodities' => commodities,
-        'Setores' => setores,
-        _ => indices,
-      };
-  List<FSAsset> get mostTraded =>
-      assetFilter == 'Ações'
-        ? fsAssets.where((a) => a.category == 'Ações').take(4).toList()
-        : fsAssets.where((a) => a.category == assetFilter).toList();
+  List<FSAsset> get mostTraded => widget.store.assets
+      .where((a) => a.category == 'Ações' && a.price > 0).toList();
 
   @override
   Widget build(BuildContext context) => SafeArea(child: ListView(
@@ -373,51 +321,15 @@ class _MarketsScreenState extends State<MarketsScreen> {
       const Text('Mercado', style: TextStyle(
         fontSize: 23, fontWeight: FontWeight.w700)),
       const SizedBox(height: 17),
-      SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(children: [
-          for (final category in const ['Índices','Câmbio','Commodities','Setores'])
-            TextButton(
-              key: ValueKey('market-$category'),
-              onPressed: () => setState(() => activeTab = category),
-              style: TextButton.styleFrom(
-                foregroundColor: activeTab == category ? fsGreen : fsMuted),
-              child: Text(category, style: TextStyle(
-                fontSize: 12,
-                fontWeight: activeTab == category
-                  ? FontWeight.w700 : FontWeight.w500)),
-            ),
-        ]),
-      ),
-      const Divider(height: 1, color: fsBorder),
-      const SizedBox(height: 8),
-      for (final index in marketRows)
-        _MarketIndexRow(index: index),
+      const FSPanel(child: Text('Acompanhe ações brasileiras com cotações da brapi. Índices, câmbio e outros mercados serão adicionados após integração com fontes verificadas.')),
       const SizedBox(height: 22),
-      const FSHeading('Mais negociadas'),
-      SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(children: [
-          for (final filter in const ['Ações','Fundos','ETF','Cripto'])
-            Padding(padding: const EdgeInsets.only(right: 8),
-              child: ChoiceChip(
-                label: Text(filter, style: const TextStyle(fontSize: 11)),
-                selected: assetFilter == filter,
-                showCheckmark: false,
-                selectedColor: fsGreen.withValues(alpha: .10),
-                backgroundColor: Colors.white,
-                side: BorderSide(color: assetFilter == filter
-                  ? fsGreen : fsBorder),
-                onSelected: (_) => setState(() => assetFilter = filter),
-              )),
-        ]),
-      ),
+      const FSHeading('Ações acompanhadas'),
       const SizedBox(height: 8),
       for (final asset in mostTraded)
         FSAssetRow(asset: asset,
           onTap: () => openAsset(context, widget.store, asset)),
       const SizedBox(height: 14),
-      const Center(child: Text('Índices demonstrativos · ações via brapi',
+      const Center(child: Text('Fonte: brapi · cotações sujeitas a atraso',
         style: TextStyle(fontSize: 11, color: fsMuted))),
     ],
   ));
@@ -533,9 +445,9 @@ class _SearchScreenState extends State<SearchScreen> {
   String query='';
   @override
   Widget build(BuildContext context) {
-    final matches = fsAssets.where((a) =>
+    final matches = widget.store.assets.where((a) => a.price > 0 && (
       a.ticker.toLowerCase().contains(query.toLowerCase()) ||
-      a.name.toLowerCase().contains(query.toLowerCase())).toList();
+      a.name.toLowerCase().contains(query.toLowerCase()))).toList();
     return SafeArea(child: ListView(
       key: const ValueKey('search-screen'),
       padding: const EdgeInsets.all(24),
@@ -610,8 +522,6 @@ class MoreScreen extends StatelessWidget {
       for(final item in <(String, IconData, Widget)>[
         ('Favoritos', Icons.star_outline, FavoritesScreen(store:store)),
         ('Comparar empresas', Icons.compare_arrows, const CompareScreen()),
-        ('Notícias', Icons.article_outlined, const NewsScreen()),
-        ('Assistente', Icons.smart_toy_outlined, const AssistantScreen()),
         ('Conheça o FinSight', Icons.info_outline, const OnboardingScreen()),
       ]) ...[
         FSPanel(child: ListTile(
