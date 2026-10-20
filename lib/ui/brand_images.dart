@@ -29,6 +29,33 @@ class FSBrandImage extends StatelessWidget {
         child: Center(child: Text(ticker.substring(0, ticker.length > 2 ? 2 : ticker.length),
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700))));
     }
+    if (ticker == 'ITUB4') {
+      return SizedBox(
+        width: size,
+        height: size,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: const Color(0xFFFF6200),
+            borderRadius: BorderRadius.circular(size * .24),
+          ),
+          child: Center(
+            child: Text(
+              'itaú',
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              textScaler: TextScaler.noScaling,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: size * .37,
+                letterSpacing: -size * .025,
+                height: 1,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return SizedBox(
       width: size, height: size,
       child: Image.memory(png, width: size, height: size, fit: BoxFit.contain,
