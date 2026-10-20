@@ -124,6 +124,21 @@ class _LinePainter extends CustomPainter {
       final y = size.height - 3 - ((values[i]-low)/range)*(size.height-6);
       if (i==0) {path.moveTo(x,y);} else {path.lineTo(x,y);}
     }
+    final area = Path.from(path)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(area, Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          color.withValues(alpha: .22),
+          color.withValues(alpha: .07),
+          color.withValues(alpha: 0),
+        ],
+        stops: const [0, .48, 1],
+      ).createShader(Offset.zero & size));
     canvas.drawPath(path, Paint()
       ..color=color ..strokeWidth=2 ..style=PaintingStyle.stroke
       ..strokeJoin=StrokeJoin.round ..strokeCap=StrokeCap.round);
